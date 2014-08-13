@@ -101,6 +101,7 @@ public abstract class PowerComponent extends Thread {
       long oldIter = iter;
       iter = (long)Math.max(iter + 1,
                             1 + (curTime - beginTime) / iterationInterval);
+      
       if(oldIter + 1 != iter) {
         Log.w(TAG, "[" + getComponentName() + "] Had to skip from iteration " +
                    oldIter + " to " + iter);

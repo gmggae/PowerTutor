@@ -196,6 +196,10 @@ public class SystemInfo {
       BufferedReader rdr = new BufferedReader(new InputStreamReader(
                         new FileInputStream("/proc/" + pid + "/status")), 256);
       for(String line = rdr.readLine(); line != null; line = rdr.readLine()) {
+    	  
+    	Log.e(TAG, line);
+    	
+    	
         if(line.startsWith("Uid:")) {
           String tokens[] = line.substring(4).split("[ \t]+"); 
           String realUidToken = tokens[tokens[0].length() == 0 ? 1 : 0];
@@ -441,7 +445,8 @@ public class SystemInfo {
       case AID_AUDIO:
         return "Audio Devices";
       case AID_CAMERA:
-        return "Camera Devices"; case AID_LOG:
+        return "Camera Devices";
+       case AID_LOG:
         return "Log Devices";
       case AID_COMPASS:
         return "Compass Device (e.g. akmd)";

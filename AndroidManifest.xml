@@ -21,7 +21,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.henny.PowerTutor2.ui.Help" >
+        <activity android:name="com.henny.PowerTutor2.ui.ProcessLogging" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -97,18 +97,6 @@
 
         <service android:name="com.henny.PowerTutor2.service.UMLoggerService" >
         </service>
-
-        <receiver android:name="com.henny.PowerTutor2.widget.PowerWidget" >
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info" />
-        </receiver>
-        <activity android:name="com.purplebrain.adbuddiz.sdk.AdBuddizActivity" 
-               android:theme="@android:style/Theme.Translucent" />
     </application>
 
     <uses-sdk android:minSdkVersion="9" />
@@ -117,6 +105,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 

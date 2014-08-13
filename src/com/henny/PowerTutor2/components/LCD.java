@@ -17,25 +17,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 package com.henny.PowerTutor2.components;
 
-import com.henny.PowerTutor2.PowerNotifications;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.provider.Settings;
-import android.os.Process;
 import android.util.Log;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.List;
 
 import com.henny.PowerTutor2.service.IterationData;
 import com.henny.PowerTutor2.service.PowerData;
 import com.henny.PowerTutor2.util.ForegroundDetector;
-import com.henny.PowerTutor2.util.NotificationService;
 import com.henny.PowerTutor2.util.Recycler;
 import com.henny.PowerTutor2.util.SystemInfo;
 

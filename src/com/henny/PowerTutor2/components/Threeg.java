@@ -124,13 +124,13 @@ public class Threeg extends PowerComponent {
     String interfaceName = phoneConstants.threegInterface();
     threegState = new ThreegStateKeeper();
     uidStates = new SparseArray<ThreegStateKeeper>();
-    transPacketsFile = "/sys/devices/virtual/net/" +
+    transPacketsFile = "/sys/class/net/" +
                        interfaceName + "/statistics/tx_packets";
-    readPacketsFile = "/sys/devices/virtual/net/" +
+    readPacketsFile = "/sys/class/net/" +
                       interfaceName + "/statistics/rx_packets";
-    readBytesFile = "/sys/devices/virtual/net/" +
+    readBytesFile = "/sys/class/net/" +
                     interfaceName + "/statistics/rx_bytes";
-    transBytesFile = "/sys/devices/virtual/net/" +
+    transBytesFile = "/sys/class/net/" +
                      interfaceName + "/statistics/tx_bytes";
     uidStatsFolder = new File("/proc/uid_stat");
     sysInfo = SystemInfo.getInstance();

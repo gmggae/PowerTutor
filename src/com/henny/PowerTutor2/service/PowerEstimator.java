@@ -19,38 +19,32 @@ Please send inquiries to powertutor@umich.edu
 
 package com.henny.PowerTutor2.service;
 
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.os.SystemClock;
-import android.preference.PreferenceManager;
-import android.provider.Settings;
-import android.util.Log;
-import android.util.SparseArray;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
-import com.henny.PowerTutor2.components.CPU;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.SystemClock;
+import android.preference.PreferenceManager;
+import android.util.Log;
+import android.util.SparseArray;
+
+import com.henny.PowerTutor2.components.Logging;
 import com.henny.PowerTutor2.components.OLED;
 import com.henny.PowerTutor2.components.PowerComponent;
 import com.henny.PowerTutor2.phone.PhoneConstants;
 import com.henny.PowerTutor2.phone.PhoneSelector;
 import com.henny.PowerTutor2.phone.PowerFunction;
-import com.henny.PowerTutor2.util.BatteryStats;
 import com.henny.PowerTutor2.util.Counter;
 import com.henny.PowerTutor2.util.HistoryBuffer;
-import com.henny.PowerTutor2.util.NotificationService;
 import com.henny.PowerTutor2.util.SystemInfo;
-import com.henny.PowerTutor2.widget.PowerWidget;
 
 /**
  * This class is responsible for starting the individual power component loggers
@@ -74,18 +68,18 @@ public class PowerEstimator implements Runnable {
 			+ "GPSAudioWifi3GLCDCPU-power ";
 
 	public static final int ALL_COMPONENTS = -1;
-	public static final int ITERATION_INTERVAL = 1000; // 1 second
+	public static final int ITERATION_INTERVAL = 100; // 1 second
 
 	private UMLoggerService context;
 	private SharedPreferences prefs;
 	// private boolean plugged;
 
+	private Logging logging;
 	private Vector<PowerComponent> powerComponents;
 	private Vector<PowerFunction> powerFunctions;
 	private Vector<HistoryBuffer> histories;
 	private Map<Integer, String> uidAppIds;
 
-	// Miscellaneous data.
 	private HistoryBuffer oledScoreHistory;
 
 	private Object fileWriteLock = new Object();
@@ -95,13 +89,17 @@ public class PowerEstimator implements Runnable {
 
 	private Object iterationLock = new Object();
 	private long lastWrittenIteration;
-
+	
 	public PowerEstimator(UMLoggerService context) {
 		this.context = context;
 		prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
 		powerComponents = new Vector<PowerComponent>();
+		
+		
+		
 		powerFunctions = new Vector<PowerFunction>();
+		
 		uidAppIds = new HashMap<Integer, String>();
 		PhoneSelector.generateComponents(context, powerComponents,
 				powerFunctions);
@@ -119,10 +117,11 @@ public class PowerEstimator implements Runnable {
 	private void openLog(boolean init) {
 		/* Open up the log file if possible. */
 		try {
-			Log.i(TAG, "openLog");
+			
 			String logFilename = context.getFileStreamPath("PowerTrace.log")
 					.getAbsolutePath();
 
+			
 			if (init && prefs.getBoolean("sendPermission", true)
 					&& new File(logFilename).length() > 0) {
 				/*
@@ -148,10 +147,17 @@ public class PowerEstimator implements Runnable {
 	public void run() {
 		SystemInfo sysInfo = SystemInfo.getInstance();
 		PackageManager pm = context.getPackageManager();
-		BatteryStats bst = BatteryStats.getInstance();
-
+		//BatteryStats bst = BatteryStats.getInstance();
+		
+	
 		int components = powerComponents.size();
 		long beginTime = SystemClock.elapsedRealtime();
+		
+		logging = new Logging(context);
+		logging.init(beginTime, ITERATION_INTERVAL);
+		logging.start();
+		
+	
 		for (int i = 0; i < components; i++) {
 			powerComponents.get(i).init(beginTime, ITERATION_INTERVAL);
 			powerComponents.get(i).start();
@@ -159,7 +165,7 @@ public class PowerEstimator implements Runnable {
 		IterationData[] dataTemp = new IterationData[components];
 
 		PhoneConstants phoneConstants = PhoneSelector.getConstants(context);
-		long[] memInfo = new long[4];
+		//long[] memInfo = new long[4];
 
 		int oledId = -1;
 		for (int i = 0; i < components; i++) {
@@ -169,7 +175,7 @@ public class PowerEstimator implements Runnable {
 			}
 		}
 
-		double lastCurrent = -1;
+		//double lastCurrent = -1;
 
 		/* Indefinitely collect data on each of the power components. */
 		boolean firstLogIteration = true;
@@ -182,6 +188,7 @@ public class PowerEstimator implements Runnable {
 			 */
 			iter = (long) Math.max(iter + 1, (curTime - beginTime)
 					/ ITERATION_INTERVAL);
+			
 			/* Sleep until the next iteration completes. */
 			try {
 				Thread.currentThread().sleep(
@@ -191,7 +198,7 @@ public class PowerEstimator implements Runnable {
 				break;
 			}
 
-			int totalPower = 0;
+			//int totalPower = 0;
 			for (int i = 0; i < components; i++) {
 				PowerComponent comp = powerComponents.get(i);
 				IterationData data = comp.getData(iter);
@@ -212,9 +219,9 @@ public class PowerEstimator implements Runnable {
 					powerData.setCachedPower(power);
 					histories.get(i).add(uid, iter, power);
 					// histories.get(i).getTotal(uid, )
-					if (uid == SystemInfo.AID_ALL) {
+					/*if (uid == SystemInfo.AID_ALL) {
 						totalPower += power;
-					}
+					}*/
 					if (i == oledId) {
 						OLED.OledData oledData = (OLED.OledData) powerData;
 						if (oledData.pixPower >= 0) {
@@ -296,12 +303,8 @@ public class PowerEstimator implements Runnable {
 						avgPower);
 			}
 
-			/* Update the widget. */
-			if (iter % 60 == 0) {
-				PowerWidget.updateWidget(context, this);
-			}
-
-			if (bst.hasCurrent()) {
+		
+			/*if (bst.hasCurrent()) {
 				double current = bst.getCurrent();
 				if (current != lastCurrent) {
 					writeToLog("batt_current " + current + "\n");
@@ -342,21 +345,22 @@ public class PowerEstimator implements Runnable {
 				}
 			}
 
-			/*
-			 * Let's only grab memory information every 10 seconds to try to
-			 * keep log file size down and the notice_data table size down.
-			 */
+			 
+			
+			
 			boolean hasMem = false;
 			if (iter % 10 == 0) {
 				hasMem = sysInfo.getMemInfo(memInfo);
 			}
 
+			*/
+			
+			
 			synchronized (fileWriteLock) {
 				if (logStream != null)
 					try {
-						logStream.write("time " + System.currentTimeMillis()
-								+ "\n");
-						if (firstLogIteration) {
+						//logStream.write("time " + System.currentTimeMillis()+ "\n");
+						/*if (firstLogIteration) {
 							firstLogIteration = false;
 							Calendar cal = new GregorianCalendar();
 							logStream.write("localtime_offset "
@@ -389,6 +393,7 @@ public class PowerEstimator implements Runnable {
 									+ memInfo[1] + " " + memInfo[2] + " "
 									+ memInfo[3] + "\n");
 						}
+						*/
 
 						/*
 						 * Mask: lcd: 14 cpu: 13 wifi:11 3g: 7
@@ -396,13 +401,13 @@ public class PowerEstimator implements Runnable {
 						 * wifi&3g: 3 cpu&wifi&3g: 1 lcd&cpu&wifi&3g: 0
 						 */
 
-						logStream.write(getConsumtionOfApps(14, sysInfo, pm));
-						logStream.write(getConsumtionOfApps(13, sysInfo, pm));
-						logStream.write(getConsumtionOfApps(11, sysInfo, pm));
-						logStream.write(getConsumtionOfApps(7, sysInfo, pm));
+						logStream.write(getConsumtionOfApps(14, sysInfo, pm, iter));
+						logStream.write(getConsumtionOfApps(13, sysInfo, pm, iter));
+						logStream.write(getConsumtionOfApps(11, sysInfo, pm, iter));
+						logStream.write(getConsumtionOfApps(7, sysInfo, pm, iter));
 						
 						
-						for (int i = 0; i < components; i++) {
+					/*	for (int i = 0; i < components; i++) {
 							IterationData data = dataTemp[i];
 							if (data != null) {
 								String name = powerComponents.get(i)
@@ -410,9 +415,11 @@ public class PowerEstimator implements Runnable {
 
 								SparseArray<PowerData> uidData = data
 										.getUidPowerData();
+								
 
 								for (int j = 0; j < uidData.size(); j++) {
 									int uid = uidData.keyAt(j);
+									
 									PowerData powerData = uidData.valueAt(j);
 
 									if (uid == SystemInfo.AID_ALL) {
@@ -425,7 +432,7 @@ public class PowerEstimator implements Runnable {
 									} else {
 										String content = "";
 										if (powerComponents.get(i) instanceof CPU) {
-											content = name
+											content = iter + " " +  name
 													+ "-"
 													+ uid
 													+ " "
@@ -456,6 +463,7 @@ public class PowerEstimator implements Runnable {
 								data.recycle();
 							}
 						}
+						*/
 					} catch (IOException e) {
 						Log.w(TAG, "Failed to write to log file");
 					}
@@ -484,14 +492,15 @@ public class PowerEstimator implements Runnable {
 			}
 		}
 
-		/* Blank the widget's display and turn off power button. */
-		PowerWidget.updateWidgetDone(context);
+	
 
 		/* Have all of the power component threads exit. */
 		logUploader.interrupt();
+		logging.interrupt();
 		for (int i = 0; i < components; i++) {
 			powerComponents.get(i).interrupt();
 		}
+		
 		try {
 			logUploader.join();
 		} catch (InterruptedException e) {
@@ -527,9 +536,9 @@ public class PowerEstimator implements Runnable {
 	 */
 
 	private String getConsumtionOfApps(int mask, SystemInfo sysInfo,
-			PackageManager pm) {
+			PackageManager pm, long iter) {
 		String content = "";
-		String description = "";
+		/*String description = "";
 		switch (mask) {
 		case 14: {
 			description = "LCD-TOTAL";
@@ -564,14 +573,22 @@ public class PowerEstimator implements Runnable {
 			break;
 		}
 		}
+		*/
 
+		
+		
 		UidInfo[] uidInfos = getUidInfo(
 				prefs.getInt("topWindowType", Counter.WINDOW_TOTAL), mask);
 
 		for (UidInfo uidInfo : uidInfos) {
-			content += description + "-" + uidInfo.uid + "-"
-					+ sysInfo.getUidName(uidInfo.uid, pm) + " "
+			if( uidInfo.totalEnergy != 0)
+			{
+				content += iter + "@" + mask + "@" + uidInfo.uid + "@"
+					+ sysInfo.getUidName(uidInfo.uid, pm) + "@"
 					+ uidInfo.totalEnergy + "\n";
+			}
+			
+		
 		}
 
 		return content;
@@ -694,7 +711,7 @@ public class PowerEstimator implements Runnable {
 						currentPower += histories.get(i).get(uid, iteration, 1)[0];
 					}
 				}
-				double scale = ITERATION_INTERVAL / 1000.0;
+				//double scale = ITERATION_INTERVAL / 1000.0;
 				info.init(uid, currentPower,
 						sumArray(getTotals(uid, windowType), ignoreMask)
 								* ITERATION_INTERVAL / 1000,

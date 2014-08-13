@@ -128,9 +128,7 @@ public class Wifi extends PowerComponent {
 		 * Try to grab the interface name. If we can't find it will take a wild
 		 * stab in the dark.
 		 */
-		interfaceName = SystemInfo.getInstance().getProperty("wifi.interface");
-		if (interfaceName == null)
-			interfaceName = "eth0";
+		interfaceName = "sit0";
 
 		lastLinkSpeed = -1;
 		wifiState = new WifiStateKeeper(phoneConstants.wifiHighLowTransition(),
@@ -147,6 +145,8 @@ public class Wifi extends PowerComponent {
 		readPacketsFile = prefix + interfaceName + "/statistics/rx_packets";
 		transBytesFile = prefix + interfaceName + "/statistics/tx_bytes";
 		readBytesFile = prefix + interfaceName + "/statistics/rx_bytes";
+		
+		Log.i(TAG, readBytesFile);
 	}
 
 	@Override

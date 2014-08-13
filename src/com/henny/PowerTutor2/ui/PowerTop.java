@@ -19,9 +19,7 @@ Please send inquiries to powertutor@umich.edu
 
 package com.henny.PowerTutor2.ui;
 
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdView;
+
 import com.henny.PowerTutor2.service.ICounterService;
 import com.henny.PowerTutor2.R;
 
@@ -75,7 +73,6 @@ public class PowerTop extends Activity implements Runnable {
 	private static final CharSequence[] KEY_NAMES = { "Current power",
 			"Average power", "Energy usage" };
 
-	private final boolean pro=false;
 	
 	private SharedPreferences prefs;
 	private int noUidMask;
@@ -91,7 +88,6 @@ public class PowerTop extends Activity implements Runnable {
 	private LinearLayout mainView;
 
 	private static final String ADD_ID = "ca-app-pub-4556215106095060/2018208639";
-	private AdView adView;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -106,9 +102,6 @@ public class PowerTop extends Activity implements Runnable {
 			noUidMask = savedInstanceState.getInt("noUidMask");
 		}
 
-		// AdView
-		adView = new AdView(this);
-		
 
 		topGroup = new LinearLayout(this);
 		topGroup.setOrientation(LinearLayout.VERTICAL);
@@ -121,15 +114,7 @@ public class PowerTop extends Activity implements Runnable {
 		filterGroup.setOrientation(LinearLayout.HORIZONTAL);
 		filterGroup.setMinimumHeight(50);
 		
-		if(!pro){
-			adView.setAdUnitId(ADD_ID);
-			adView.setAdSize(AdSize.BANNER);
-			// Initiate a generic request.
-			AdRequest adRequest = new AdRequest.Builder().build();
-			// Load the adView with the ad request.
-			adView.loadAd(adRequest);
-			mainView.addView(adView);
-		}
+		
 
 		mainView.addView(filterGroup);
 		mainView.addView(scrollView);

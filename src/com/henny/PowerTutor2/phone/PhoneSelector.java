@@ -25,6 +25,7 @@ import com.henny.PowerTutor2.components.Audio;
 import com.henny.PowerTutor2.components.CPU;
 import com.henny.PowerTutor2.components.GPS;
 import com.henny.PowerTutor2.components.LCD;
+import com.henny.PowerTutor2.components.Logging;
 import com.henny.PowerTutor2.components.OLED;
 import com.henny.PowerTutor2.components.PowerComponent;
 import com.henny.PowerTutor2.components.Sensors;
@@ -158,8 +159,11 @@ public class PhoneSelector {
 		});
 
 		/* Add Wifi component. */
-		String wifiInterface = "";
-		wifiInterface = SystemInfo.getInstance().getProperty("wifi.interface");
+		String wifiInterface = "sit0";
+		//Log.i("wifi", wifiInterface + "1");
+		//wifiInterface = SystemInfo.getInstance().getProperty("wifi.interface");
+		
+		//Log.i("wifi", wifiInterface + "2");
 
 		if (wifiInterface != null && wifiInterface.length() != 0) {
 			components.add(new Wifi(context, constants));
@@ -195,6 +199,8 @@ public class PhoneSelector {
 				return calculator.getAudioPower((AudioData) data);
 			}
 		});
+		
+		
 
 		/* Add Sensors component if avaialble. */
 		if (NotificationService.available()) {

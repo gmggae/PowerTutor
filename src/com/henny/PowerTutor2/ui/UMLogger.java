@@ -19,8 +19,11 @@ Please send inquiries to powertutor@umich.edu
 
 package com.henny.PowerTutor2.ui;
 
-import com.henny.PowerTutor2.service.ICounterService;
-import com.henny.PowerTutor2.R;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.zip.InflaterInputStream;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -34,7 +37,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -43,14 +45,9 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.util.Random;
-import java.util.zip.InflaterInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-
+import com.henny.PowerTutor2.R;
 import com.henny.PowerTutor2.phone.PhoneSelector;
+import com.henny.PowerTutor2.service.ICounterService;
 import com.henny.PowerTutor2.service.UMLoggerService;
 
 /** The main view activity for PowerTutor */
@@ -70,14 +67,14 @@ public class UMLogger extends Activity {
 	private Button serviceStartButton;
 	private Button appViewerButton;
 	private Button sysViewerButton;
-	private Button helpButton;
-	private TextView scaleText;
+	private Button loggingButton;
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
+		//adb shell pm grant com.henny.PowerTutor2 android.permission.READ_LOGS
 		
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -93,12 +90,12 @@ public class UMLogger extends Activity {
 		serviceStartButton = (Button) findViewById(R.id.servicestartbutton);
 		appViewerButton = (Button) findViewById(R.id.appviewerbutton);
 		sysViewerButton = (Button) findViewById(R.id.sysviewerbutton);
-		helpButton = (Button) findViewById(R.id.helpbutton);
+		loggingButton = (Button) findViewById(R.id.helpbutton);
 
 		serviceStartButton.setOnClickListener(serviceStartButtonListener);
 		sysViewerButton.setOnClickListener(sysViewerButtonListener);
 		appViewerButton.setOnClickListener(appViewerButtonListener);
-		helpButton.setOnClickListener(helpButtonListener);
+		loggingButton.setOnClickListener(helpButtonListener);
 
 		if (counterService != null) {
 			serviceStartButton.setText("Stop Profiler");
@@ -169,17 +166,17 @@ public class UMLogger extends Activity {
 						Toast.LENGTH_SHORT).show();
 
 			} else {
-
 				new Thread() {
 					public void start() {
 
 						File writeFile = new File(Environment
 								.getExternalStorageDirectory()
-								.getAbsolutePath(), "PowerTrace"
+								.getAbsolutePath() + "/PowerTraceWithLog" , "PowerTrace"
 								+ System.currentTimeMillis() + ".log");
+						
+						
 						int count = 0;
 						try {
-
 							InflaterInputStream logIn = new InflaterInputStream(
 									openFileInput("PowerTrace.log"));
 
@@ -376,7 +373,7 @@ public class UMLogger extends Activity {
 
 	private Button.OnClickListener helpButtonListener = new Button.OnClickListener() {
 		public void onClick(View v) {
-			Intent myIntent = new Intent(v.getContext(), Help.class);
+			Intent myIntent = new Intent(v.getContext(), ProcessLogging.class);
 			startActivityForResult(myIntent, 0);
 		}
 	};

@@ -100,7 +100,11 @@ public class Audio extends PowerComponent {
 
   public Audio(Context context) {
     if(NotificationService.available()) {
-      uidData = new TreeSet<MediaData>();
+      
+    	
+    	uidData = new TreeSet<MediaData>();
+      
+      
       audioNotif = new NotificationService.DefaultReceiver() {
         private int sysUid = -1;
 
@@ -141,6 +145,7 @@ public class Audio extends PowerComponent {
       NotificationService.addHook(audioNotif);
     }
 
+    
     audioManager = (AudioManager)context.getSystemService(
                                              Context.AUDIO_SERVICE);
   }

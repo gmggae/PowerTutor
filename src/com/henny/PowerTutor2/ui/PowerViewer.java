@@ -19,20 +19,14 @@ Please send inquiries to powertutor@umich.edu
 
 package com.henny.PowerTutor2.ui;
 
+import java.util.logging.Logger;
+
 import org.achartengine.GraphicalView;
 import org.achartengine.chart.CubicLineChart;
 import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
-
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdView;
-import com.henny.PowerTutor2.service.ICounterService;
-import com.henny.PowerTutor2.service.PowerEstimator;
-import com.henny.PowerTutor2.service.UMLoggerService;
-import com.henny.PowerTutor2.util.SystemInfo;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -54,6 +48,11 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import com.henny.PowerTutor2.service.ICounterService;
+import com.henny.PowerTutor2.service.PowerEstimator;
+import com.henny.PowerTutor2.service.UMLoggerService;
+import com.henny.PowerTutor2.util.SystemInfo;
 
 public class PowerViewer extends Activity {
 	private static final String TAG = "PowerViewer";
@@ -96,7 +95,9 @@ public class PowerViewer extends Activity {
 		}
 		components = 0;
 		for (int i = 0; i < componentNames.length; i++) {
+			Log.i("TAG", componentNames[i]);
 			if ((noUidMask & 1 << i) == 0) {
+				
 				components++;
 			}
 		}
@@ -189,6 +190,7 @@ public class PowerViewer extends Activity {
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		uid = getIntent().getIntExtra("uid", SystemInfo.AID_ALL);
 
+		
 		collecting = true;
 		if (savedInstanceState != null) {
 			collecting = savedInstanceState.getBoolean("collecting", true);

@@ -19,8 +19,7 @@ Please send inquiries to powertutor@umich.edu
 
 package com.henny.PowerTutor2.ui;
 
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdView;
+
 import com.henny.PowerTutor2.R;
 
 import android.app.TabActivity;

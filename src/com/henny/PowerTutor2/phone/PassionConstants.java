@@ -124,7 +124,7 @@ public class PassionConstants extends DreamConstants {
   }
 
   public String threegInterface() {
-    return "rmnet0";
+    return "sit0";
   }
 
   public double threegIdlePower(String oper) {

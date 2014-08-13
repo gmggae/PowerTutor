@@ -165,7 +165,7 @@ public class PowerPie extends Activity {
       }
     };
     if(handler != null) {
-      handler.post(collector);
+    	handler.post(collector);
     }
 
     LinearLayout layout = new LinearLayout(this);
