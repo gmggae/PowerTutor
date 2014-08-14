@@ -300,7 +300,7 @@ public class PowerViewer extends Activity {
 			this.renderer = renderer;
 			this.chartView = chartView;
 			this.componentId = componentId;
-			lastTime = SystemClock.elapsedRealtime();
+			lastTime = System.currentTimeMillis();
 			layout();
 		}
 
@@ -356,7 +356,7 @@ public class PowerViewer extends Activity {
 				series.add(i, values[i]);
 			}
 
-			long curTime = SystemClock.elapsedRealtime();
+			long curTime = System.currentTimeMillis();
 			long tryTime = lastTime
 					+ PowerEstimator.ITERATION_INTERVAL
 					* (long) Math.max(1, 1 + (curTime - lastTime)

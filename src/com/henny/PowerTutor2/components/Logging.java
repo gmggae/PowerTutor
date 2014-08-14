@@ -1,16 +1,17 @@
 package com.henny.PowerTutor2.components;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.zip.DeflaterOutputStream;
 
 import android.content.Context;
-import android.os.SystemClock;
+import android.util.Log;
 
 public class Logging extends Thread {
 	private final String TAG = "Logging";
@@ -57,20 +58,33 @@ public class Logging extends Thread {
 			Runtime.getRuntime().exec(new String[] { "logcat", "-c" });
 
 			Process logcat = Runtime.getRuntime().exec(
-					new String[] { "logcat", "-v", "brief" });
+					new String[] { "logcat", "-v", "time" });
 			BufferedReader br = new BufferedReader(new InputStreamReader(
 					logcat.getInputStream()), 4 * 1024);
 			String line;
+				
+			SimpleDateFormat df = new SimpleDateFormat("MM-dd HH:mm:ss.SSS");
+
 			for (long iter = 0; !Thread.interrupted()
 					&& ((line = br.readLine()) != null);) {
 
 				if (interrupted()) {
 					break;
 				}
-
-				long curTime = SystemClock.elapsedRealtime();
-				iter = (long) (1 + (curTime - beginTime) / iterationInterval);
-				outbr.write(iter + "@#" + line + "\n");				
+			      			      
+			    try {
+			    	
+			    	Date d = df.parse( line.substring(0, 18));
+			    	d.setYear(new Date(beginTime).getYear());
+					
+					iter = (long) (1 + (d.getTime() - beginTime) / iterationInterval);
+					outbr.write(iter + "@#" + line.substring(19) + "\n");			
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+					
 			}
 
 			try {

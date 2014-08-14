@@ -163,13 +163,13 @@ public class UMLogger extends Activity {
 		case MENU_SAVE_LOG:
 
 			if (appViewerButton.isEnabled()) {
-
 				Toast.makeText(UMLogger.this, "Stop Profiler to save log-file",
 						Toast.LENGTH_SHORT).show();
 
 			} else {
+
 				new Thread() {
-					public void start() {
+					public void run() {
 
 						File writeDirectory = new File(Environment
 								.getExternalStorageDirectory()
@@ -179,18 +179,17 @@ public class UMLogger extends Activity {
 							writeDirectory.mkdir();
 						}
 
-						File powerTraceFile = new File(writeDirectory,
+						final File powerTraceFile = new File(writeDirectory,
 								"PowerTrace" + System.currentTimeMillis()
 										+ ".log");
 
-						int count = 0;
 						try {
 							InflaterInputStream power = new InflaterInputStream(
 									openFileInput("PowerTrace.log"));
 
 							InflaterInputStream log = new InflaterInputStream(
 									openFileInput("LogTrace.log"));
-							
+
 							BufferedReader powerTrace = new BufferedReader(
 									new InputStreamReader(power));
 							BufferedReader logTrace = new BufferedReader(
@@ -200,15 +199,13 @@ public class UMLogger extends Activity {
 
 							String pln = null;
 							String lln = null;
-							
-							
+
 							long iter = 1;
 
-							
 							while (true) {
 
 								if (pln != null) {
-									logOut.write(pln+"\n");
+									logOut.write(pln + "\n");
 								}
 
 								while ((pln = powerTrace.readLine()) != null) {
@@ -220,36 +217,42 @@ public class UMLogger extends Activity {
 										if (num > iter) {
 											break;
 										} else {
-											logOut.write(pln+"\n");
+											logOut.write(pln + "\n");
 										}
 									}
 								}
 
 								logOut.write("----------------------------------\n");
-								
+
 								if (lln != null) {
 									logOut.write(lln);
 								}
 								while ((lln = logTrace.readLine()) != null) {
 
 									String[] str = lln.split("@#");
-									
+
 									if (str.length > 1) {
 										int num = Integer.parseInt(str[0]);
-										
+
 										lln = analizeLogString(str[1], num);
-										
-										if (num > iter ) {
+
+										if (num > iter) {
 											iter = num;
 											break;
-										} 
+										}
 										else {
+											
+											if(iter != num)
+											{
+												continue;
+											}
+											
 											if (lln != null) {
 												logOut.write(lln);
 											}
 										}
 									}
-									
+
 								}
 
 								logOut.write("----------------------------------\n");
@@ -259,34 +262,49 @@ public class UMLogger extends Activity {
 								}
 							}
 
-							
 							powerTrace.close();
 							logTrace.close();
 							power.close();
 							log.close();
 							logOut.close();
-							Toast.makeText(
-									UMLogger.this,
-									"Wrote log to "
-											+ powerTraceFile.getAbsolutePath(),
-									Toast.LENGTH_SHORT).show();
+
+							runOnUiThread(new Runnable() {
+								public void run() {
+									Toast.makeText(
+											UMLogger.this,
+											"Wrote log to "
+													+ powerTraceFile
+															.getAbsolutePath(),
+											Toast.LENGTH_SHORT).show();
+								}
+							});
+
 							return;
 						} catch (java.io.EOFException e) {
 							e.printStackTrace();
-							Toast.makeText(
-									UMLogger.this,
-									"Wrote log to "
-											+ powerTraceFile.getAbsolutePath()
-											+ " " + count, Toast.LENGTH_SHORT)
-									.show();
+
+							runOnUiThread(new Runnable() {
+								public void run() {
+									Toast.makeText(
+											UMLogger.this,
+											"Wrote log to "
+													+ powerTraceFile
+															.getAbsolutePath(),
+											Toast.LENGTH_SHORT).show();
+								}
+							});
+
 							return;
 						} catch (IOException e) {
 							e.printStackTrace();
-							Toast.makeText(
-									UMLogger.this,
-									"Failed to write log to sdcard"
-											+ e.toString(), Toast.LENGTH_SHORT)
-									.show();
+							runOnUiThread(new Runnable() {
+								public void run() {
+									Toast.makeText(UMLogger.this,
+											"Failed to write log to sdcard",
+											Toast.LENGTH_SHORT).show();
+								}
+							});
+
 						}
 
 					}
@@ -297,49 +315,53 @@ public class UMLogger extends Activity {
 		return super.onOptionsItemSelected(item);
 	}
 
-	
-	private String analizeLogString(String log, long iter)
-	{
+	private String analizeLogString(String log, long iter) {
 		StringBuffer strBuffer = null;
-		
-		Log.i("test", log);
-		
-		if(log.charAt(0) =='-')
-		{
+
+		if (log.charAt(0) == '-') {
 			return null;
 		}
 		strBuffer = new StringBuffer();
 		strBuffer.append(iter).append("@#");
 		strBuffer.append(log.charAt(0)).append("@#");
-		
-		
-		int i = 2;	
+
+		int i = 2;
 		int j;
-		for(;log.charAt(i) != '(' ; i++ );
-		for(j = i - 1 ; log.charAt(j) == ' ' ; j--);
-		strBuffer.append(log.substring(2, j));
-			
+		for (; (i < log.length()) && (log.charAt(i) != '('); i++)
+			;
+		for (j = i - 1; log.charAt(j) == ' '; j--)
+			;
+		strBuffer.append(log.substring(2, j + 1));
+
 		i += 1;
 		j = i;
+
+		if( i + 5 > log.length())
+		{
+			return null;
+		}
+
+		for (; (j < i + 5) && (log.charAt(j) == ' '); j++);
+
 		
-		for(;log.charAt(j) == ' ' ; j++ );
-	
-		String sPid = log.substring(j, i+5);
-		try{
+		
+		String sPid = log.substring(j, i + 5);
+		try {
 			int pid = Integer.parseInt(sPid);
 			int uid = SystemInfo.getInstance().getUidForPid(pid);
-			strBuffer.append("@#").append(uid).append("@#").append(log.substring(i+7)).append("\n");
-		} 
-		catch (Exception e)
-		{
+			
+//			if(uid != 10174)
+//				return null;
+			strBuffer.append("@#").append(uid).append("@#")
+					.append(log.substring(i + 7)).append("\n");
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
-		
-		
+
 		return strBuffer.toString();
 	}
-	
+
 	/** This function includes all the dialog constructor */
 	@Override
 	protected Dialog onCreateDialog(int id) {

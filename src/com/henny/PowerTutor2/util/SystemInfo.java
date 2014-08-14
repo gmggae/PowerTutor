@@ -551,7 +551,7 @@ public class SystemInfo {
     public void setName(String name) {
       this.name = name;
       if(updateTime == -1) {
-        updateTime = SystemClock.elapsedRealtime();
+        updateTime = System.currentTimeMillis();
       }
     }
 
@@ -562,13 +562,13 @@ public class SystemInfo {
     public void setIcon(Drawable icon) {
       this.icon = icon;
       if(updateTime == -1) {
-        updateTime = SystemClock.elapsedRealtime();
+        updateTime = System.currentTimeMillis();
       }
     }
 
     public void clearIfExpired() {
       if(updateTime != -1 &&
-         updateTime + EXPIRATION_TIME < SystemClock.elapsedRealtime()) {
+         updateTime + EXPIRATION_TIME < System.currentTimeMillis()) {
         updateTime = -1;
         name = null;
         icon = null;

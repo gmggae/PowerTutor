@@ -36,6 +36,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.SparseArray;
 
+import com.henny.PowerTutor2.components.CPU;
 import com.henny.PowerTutor2.components.Logging;
 import com.henny.PowerTutor2.components.OLED;
 import com.henny.PowerTutor2.components.PowerComponent;
@@ -89,17 +90,15 @@ public class PowerEstimator implements Runnable {
 
 	private Object iterationLock = new Object();
 	private long lastWrittenIteration;
-	
+
 	public PowerEstimator(UMLoggerService context) {
 		this.context = context;
 		prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
 		powerComponents = new Vector<PowerComponent>();
-		
-		
-		
+
 		powerFunctions = new Vector<PowerFunction>();
-		
+
 		uidAppIds = new HashMap<Integer, String>();
 		PhoneSelector.generateComponents(context, powerComponents,
 				powerFunctions);
@@ -117,11 +116,10 @@ public class PowerEstimator implements Runnable {
 	private void openLog(boolean init) {
 		/* Open up the log file if possible. */
 		try {
-			
+
 			String logFilename = context.getFileStreamPath("PowerTrace.log")
 					.getAbsolutePath();
 
-			
 			if (init && prefs.getBoolean("sendPermission", true)
 					&& new File(logFilename).length() > 0) {
 				/*
@@ -147,17 +145,15 @@ public class PowerEstimator implements Runnable {
 	public void run() {
 		SystemInfo sysInfo = SystemInfo.getInstance();
 		PackageManager pm = context.getPackageManager();
-		//BatteryStats bst = BatteryStats.getInstance();
-		
-	
+		// BatteryStats bst = BatteryStats.getInstance();
+
 		int components = powerComponents.size();
-		long beginTime = SystemClock.elapsedRealtime();
-		
+		long beginTime = System.currentTimeMillis();
+
 		logging = new Logging(context);
 		logging.init(beginTime, ITERATION_INTERVAL);
 		logging.start();
-		
-	
+
 		for (int i = 0; i < components; i++) {
 			powerComponents.get(i).init(beginTime, ITERATION_INTERVAL);
 			powerComponents.get(i).start();
@@ -165,7 +161,7 @@ public class PowerEstimator implements Runnable {
 		IterationData[] dataTemp = new IterationData[components];
 
 		PhoneConstants phoneConstants = PhoneSelector.getConstants(context);
-		//long[] memInfo = new long[4];
+		// long[] memInfo = new long[4];
 
 		int oledId = -1;
 		for (int i = 0; i < components; i++) {
@@ -175,12 +171,12 @@ public class PowerEstimator implements Runnable {
 			}
 		}
 
-		//double lastCurrent = -1;
+		// double lastCurrent = -1;
 
 		/* Indefinitely collect data on each of the power components. */
 		boolean firstLogIteration = true;
 		for (long iter = -1; !Thread.interrupted();) {
-			long curTime = SystemClock.elapsedRealtime();
+			long curTime = System.currentTimeMillis();
 			/*
 			 * Compute the next iteration that we can make the ending of. We
 			 * wait for the end of the iteration so that the components had a
@@ -188,7 +184,7 @@ public class PowerEstimator implements Runnable {
 			 */
 			iter = (long) Math.max(iter + 1, (curTime - beginTime)
 					/ ITERATION_INTERVAL);
-			
+
 			/* Sleep until the next iteration completes. */
 			try {
 				Thread.currentThread().sleep(
@@ -198,7 +194,7 @@ public class PowerEstimator implements Runnable {
 				break;
 			}
 
-			//int totalPower = 0;
+			// int totalPower = 0;
 			for (int i = 0; i < components; i++) {
 				PowerComponent comp = powerComponents.get(i);
 				IterationData data = comp.getData(iter);
@@ -219,9 +215,9 @@ public class PowerEstimator implements Runnable {
 					powerData.setCachedPower(power);
 					histories.get(i).add(uid, iter, power);
 					// histories.get(i).getTotal(uid, )
-					/*if (uid == SystemInfo.AID_ALL) {
-						totalPower += power;
-					}*/
+					/*
+					 * if (uid == SystemInfo.AID_ALL) { totalPower += power; }
+					 */
 					if (i == oledId) {
 						OLED.OledData oledData = (OLED.OledData) powerData;
 						if (oledData.pixPower >= 0) {
@@ -303,111 +299,11 @@ public class PowerEstimator implements Runnable {
 						avgPower);
 			}
 
-		
-			/*if (bst.hasCurrent()) {
-				double current = bst.getCurrent();
-				if (current != lastCurrent) {
-					writeToLog("batt_current " + current + "\n");
-					lastCurrent = current;
-				}
-			}
-			if (iter % (5 * 60) == 0) {
-				if (bst.hasTemp()) {
-					writeToLog("batt_temp " + bst.getTemp() + "\n");
-				}
-				if (bst.hasCharge()) {
-					writeToLog("batt_charge " + bst.getCharge() + "\n");
-				}
-			}
-			if (iter % (30 * 60) == 0) {
-				if (Settings.System.getInt(context.getContentResolver(),
-						"screen_brightness_mode", 0) != 0) {
-					writeToLog("setting_brightness automatic\n");
-				} else {
-					int brightness = Settings.System.getInt(
-							context.getContentResolver(),
-							Settings.System.SCREEN_BRIGHTNESS, -1);
-					if (brightness != -1) {
-						writeToLog("setting_brightness " + brightness + "\n");
-					}
-				}
-				int timeout = Settings.System.getInt(
-						context.getContentResolver(),
-						Settings.System.SCREEN_OFF_TIMEOUT, -1);
-				if (timeout != -1) {
-					writeToLog("setting_screen_timeout " + timeout + "\n");
-				}
-				String httpProxy = Settings.Secure.getString(
-						context.getContentResolver(),
-						Settings.Secure.HTTP_PROXY);
-				if (httpProxy != null) {
-					writeToLog("setting_httpproxy " + httpProxy + "\n");
-				}
-			}
-
-			 
-			
-			
-			boolean hasMem = false;
-			if (iter % 10 == 0) {
-				hasMem = sysInfo.getMemInfo(memInfo);
-			}
-
-			*/
-			
-			
 			synchronized (fileWriteLock) {
 				if (logStream != null)
 					try {
-						//logStream.write("time " + System.currentTimeMillis()+ "\n");
-						/*if (firstLogIteration) {
-							firstLogIteration = false;
-							Calendar cal = new GregorianCalendar();
-							logStream.write("localtime_offset "
-									+ (cal.get(Calendar.ZONE_OFFSET) + cal
-											.get(Calendar.DST_OFFSET)) + "\n");
-							logStream.write("model "
-									+ phoneConstants.modelName() + "\n");
-							if (NotificationService.available()) {
-								logStream.write("notifications-active\n");
-							}
-							if (bst.hasFullCapacity()) {
-								logStream.write("batt_full_capacity "
-										+ bst.getFullCapacity() + "\n");
-							}
-							synchronized (uidAppIds) {
-								for (int uid : uidAppIds.keySet()) {
-									if (uid < SystemInfo.AID_APP) {
-										continue;
-									}
-									logStream.write("associate " + uid + " "
-											+ uidAppIds.get(uid) + "\n");
-								}
-							}
-						}
-						logStream.write("begin " + iter + "\n");
-						logStream.write("total-power "
-								+ (long) Math.round(totalPower) + '\n');
-						if (hasMem) {
-							logStream.write("meminfo " + memInfo[0] + " "
-									+ memInfo[1] + " " + memInfo[2] + " "
-									+ memInfo[3] + "\n");
-						}
-						*/
-
-						/*
-						 * Mask: lcd: 14 cpu: 13 wifi:11 3g: 7
-						 * 
-						 * wifi&3g: 3 cpu&wifi&3g: 1 lcd&cpu&wifi&3g: 0
-						 */
-
-						logStream.write(getConsumtionOfApps(14, sysInfo, pm, iter));
-						logStream.write(getConsumtionOfApps(13, sysInfo, pm, iter));
-						logStream.write(getConsumtionOfApps(11, sysInfo, pm, iter));
-						logStream.write(getConsumtionOfApps(7, sysInfo, pm, iter));
-						
-						
-					/*	for (int i = 0; i < components; i++) {
+					
+						for (int i = 0; i < components; i++) {
 							IterationData data = dataTemp[i];
 							if (data != null) {
 								String name = powerComponents.get(i)
@@ -415,55 +311,40 @@ public class PowerEstimator implements Runnable {
 
 								SparseArray<PowerData> uidData = data
 										.getUidPowerData();
-								
 
 								for (int j = 0; j < uidData.size(); j++) {
 									int uid = uidData.keyAt(j);
-									
+
 									PowerData powerData = uidData.valueAt(j);
 
-									if (uid == SystemInfo.AID_ALL) {
-										logStream.write(name
-												+ " "
-												+ (long) Math.round(powerData
-														.getCachedPower())
-												+ "\n");
-										powerData.writeLogDataInfo(logStream);
-									} else {
-										String content = "";
-										if (powerComponents.get(i) instanceof CPU) {
-											content = iter + " " +  name
-													+ "-"
-													+ uid
-													+ " "
-													+ sysInfo
-															.getUidName(uid, pm)
-															.toString()
-															.replace(" ", "-")
-													+ " "
-													+ (long) Math
-															.round(powerData
-																	.getCachedPower())
-													+ "\n";
-										} else {
-											content = name
-													+ "-"
-													+ uid
-													+ " "
-					 								+ (long) Math
-															.round(powerData
-																	.getCachedPower())
-													+ "\n";
-										}
-										logStream.write(content);
+									long pData = (long) Math.round(powerData
+											.getCachedPower());
 
+									if (pData == 0 | uid == -1) {
+										continue;
 									}
+									
+									String content = "";
+									content = iter
+											+ "@#"
+											+ name
+											+ "@#"
+											+ uid
+											+ "@#"
+											+ sysInfo.getUidName(uid, pm)
+													.toString()
+													.replace(" ", "-")
+											+ "@#"
+											+ pData + "\n";
+								
+//									if(uid == 10174)
+									logStream.write(content);
 								}
 
 								data.recycle();
 							}
 						}
-						*/
+
 					} catch (IOException e) {
 						Log.w(TAG, "Failed to write to log file");
 					}
@@ -492,15 +373,13 @@ public class PowerEstimator implements Runnable {
 			}
 		}
 
-	
-
 		/* Have all of the power component threads exit. */
 		logUploader.interrupt();
 		logging.interrupt();
 		for (int i = 0; i < components; i++) {
 			powerComponents.get(i).interrupt();
 		}
-		
+
 		try {
 			logUploader.join();
 		} catch (InterruptedException e) {
@@ -535,66 +414,7 @@ public class PowerEstimator implements Runnable {
 	 * wifi&3g: 3 cpu&wifi&3g: 1 lcd&cpu&wifi&3g: 0
 	 */
 
-	private String getConsumtionOfApps(int mask, SystemInfo sysInfo,
-			PackageManager pm, long iter) {
-		String content = "";
-		/*String description = "";
-		switch (mask) {
-		case 14: {
-			description = "LCD-TOTAL";
-			break;
-		}
-		case 13: {
-			description = "CPU-TOTAL";
-			break;
-		}
-		case 11: {
-			description = "WIFI-TOTAL";
-			break;
-		}
-		case 7: {
-			description = "3G-TOTAL";
-			break;
-		}
-		case 3: {
-			description = "WIFI3G";
-			break;
-		}
-		case 1: {
-			description = "CPUWIFI3G";
-			break;
-		}
-		case 0: {
-			description = "TOTAL";
-			break;
-		}
-		default: {
-			description = "CONS ";
-			break;
-		}
-		}
-		*/
-
-		
-		
-		UidInfo[] uidInfos = getUidInfo(
-				prefs.getInt("topWindowType", Counter.WINDOW_TOTAL), mask);
-
-		for (UidInfo uidInfo : uidInfos) {
-			if( uidInfo.totalEnergy != 0)
-			{
-				content += iter + "@#" + mask + "@#" + uidInfo.uid + "@#"
-					+ sysInfo.getUidName(uidInfo.uid, pm) + "@#"
-					+ uidInfo.totalEnergy + "\n";
-			}
-			
-		
-		}
-
-		return content;
-	}
-
-	public void plug(boolean plugged) {
+ void plug(boolean plugged) {
 		logUploader.plug(plugged);
 	}
 
@@ -711,7 +531,7 @@ public class PowerEstimator implements Runnable {
 						currentPower += histories.get(i).get(uid, iteration, 1)[0];
 					}
 				}
-				//double scale = ITERATION_INTERVAL / 1000.0;
+				// double scale = ITERATION_INTERVAL / 1000.0;
 				info.init(uid, currentPower,
 						sumArray(getTotals(uid, windowType), ignoreMask)
 								* ITERATION_INTERVAL / 1000,

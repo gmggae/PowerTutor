@@ -163,12 +163,12 @@ public class Sensors extends PowerComponent {
     public SensorStateKeeper() {
       nesting = new int[MAX_SENSORS];
       times = new long[MAX_SENSORS];
-      lastTime = SystemClock.elapsedRealtime();
+      lastTime = System.currentTimeMillis();
     }
 
     public void startSensor(int sensor) {
       if(nesting[sensor]++ == 0) {
-        times[sensor] -= SystemClock.elapsedRealtime() - lastTime;
+        times[sensor] -= System.currentTimeMillis() - lastTime;
         count++;
       }
     }
@@ -177,7 +177,7 @@ public class Sensors extends PowerComponent {
       if(nesting[sensor] == 0) {
         return;
       } else if(--nesting[sensor] == 0) {
-        times[sensor] += SystemClock.elapsedRealtime() - lastTime;
+        times[sensor] += System.currentTimeMillis() - lastTime;
         count--;
       }
     }
@@ -187,7 +187,7 @@ public class Sensors extends PowerComponent {
     }
 
     public void setupSensorTimes(double[] sensorTimes, long iterationInterval) {
-      long now = SystemClock.elapsedRealtime();
+      long now = System.currentTimeMillis();
       long div = now - lastTime;
       if(div <= 0) div = 1;
       for(int i = 0; i < MAX_SENSORS; i++) {

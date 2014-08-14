@@ -40,7 +40,7 @@ public class Counter {
 
   public Counter() {
     total = 0;
-    startTime = SystemClock.elapsedRealtime();
+    startTime = System.currentTimeMillis();
     counters = new SingleCounter[WINDOW_DURATIONS.length];
     for(int i = 0; i < counters.length; i++) {
       counters[i] = new SingleCounter();
@@ -49,7 +49,7 @@ public class Counter {
 
   public void add(long x) {
     total += x;
-    long now = SystemClock.elapsedRealtime() - startTime;
+    long now = System.currentTimeMillis() - startTime;
     for(int i = 0; i < counters.length; i++) {
       counters[i].add(x, now * SingleCounter.BUCKETS / WINDOW_DURATIONS[i]);
     }
@@ -59,7 +59,7 @@ public class Counter {
     if(window == WINDOW_TOTAL) {
       return total;
     }
-    long now = SystemClock.elapsedRealtime() - startTime;
+    long now = System.currentTimeMillis() - startTime;
     return counters[window].get(
         now * SingleCounter.BUCKETS / WINDOW_DURATIONS[window],
         (1.0 * now * SingleCounter.BUCKETS % WINDOW_DURATIONS[window]) /

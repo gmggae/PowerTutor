@@ -276,7 +276,7 @@ public class Threeg extends PowerComponent {
     }
 
     public void interfaceOff() {
-      lastTime = SystemClock.elapsedRealtime();
+      lastTime = System.currentTimeMillis();
       powerState = POWER_STATE_IDLE;
     }
 
@@ -288,7 +288,7 @@ public class Threeg extends PowerComponent {
                             long transmitBytes, long receiveBytes,
                             int dchFachDelay, int fachIdleDelay,
                             int uplinkQueueSize, int downlinkQueueSize) {
-      long curTime = SystemClock.elapsedRealtime();
+      long curTime = System.currentTimeMillis();
       if(lastTime != -1 && curTime > lastTime) {
         double deltaTime = curTime - lastTime;
         deltaPackets = transmitPackets + receivePackets -
@@ -370,7 +370,7 @@ public class Threeg extends PowerComponent {
      */
     public boolean isStale() {
       if(powerState != POWER_STATE_IDLE) return true;
-      long curTime = SystemClock.elapsedRealtime();
+      long curTime = System.currentTimeMillis();
       return curTime - lastTime > (long)Math.min(10000, inactiveTime);
     }
   }

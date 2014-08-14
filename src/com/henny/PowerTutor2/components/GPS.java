@@ -345,7 +345,7 @@ public class GPS extends PowerComponent {
     private long sleepTime;
 
     public GpsStateKeeper(int hookMask, long sleepTime) {
-      this(hookMask, sleepTime, SystemClock.elapsedRealtime());
+      this(hookMask, sleepTime, System.currentTimeMillis());
     }
 
     public GpsStateKeeper(int hookMask, long sleepTime, long lastTime) {
@@ -388,7 +388,7 @@ public class GPS extends PowerComponent {
     /* Make sure that you have a lock on this before calling. */
     private void updateTimesLocked() {
       /* Update the time we were in the previous state. */
-      long curTime = SystemClock.elapsedRealtime();
+      long curTime = System.currentTimeMillis();
 
       /* Check if the GPS has gone to sleep as a result of a timer. */
       if((hookMask & HOOK_TIMER) != 0 && offTime != -1 &&
@@ -438,7 +438,7 @@ public class GPS extends PowerComponent {
         }
         if(curState != oldState) {
           if(oldState == POWER_STATE_ON && curState == POWER_STATE_SLEEP) {
-            offTime = SystemClock.elapsedRealtime() + sleepTime;
+            offTime = System.currentTimeMillis() + sleepTime;
           } else {
             /* Any other state transition should reset the off timer. */
             offTime = -1;

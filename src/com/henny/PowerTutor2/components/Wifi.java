@@ -330,7 +330,7 @@ public class Wifi extends PowerComponent {
 		}
 
 		public void interfaceOff() {
-			lastTime = SystemClock.elapsedRealtime();
+			lastTime = System.currentTimeMillis();
 			powerState = POWER_STATE_LOW;
 		}
 
@@ -340,7 +340,7 @@ public class Wifi extends PowerComponent {
 
 		public void updateState(long transmitPackets, long receivePackets,
 				long transmitBytes, long receiveBytes) {
-			long curTime = SystemClock.elapsedRealtime();
+			long curTime = System.currentTimeMillis();
 			if (lastTime != -1 && curTime > lastTime) {
 				double deltaTime = curTime - lastTime;
 				lastUplinkRate = (transmitBytes - lastTransmitBytes) / 1024.0
@@ -433,7 +433,7 @@ public class Wifi extends PowerComponent {
 		 * many uids.
 		 */
 		public boolean isStale() {
-			long curTime = SystemClock.elapsedRealtime();
+			long curTime = System.currentTimeMillis();
 			return curTime - lastTime > (long) Math.min(10000, inactiveTime);
 		}
 	}

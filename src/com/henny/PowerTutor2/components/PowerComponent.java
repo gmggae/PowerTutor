@@ -96,7 +96,7 @@ public abstract class PowerComponent extends Thread {
         break;
       }
 
-      long curTime = SystemClock.elapsedRealtime();
+      long curTime = System.currentTimeMillis();
       /* Compute the next iteration that we can make the start of. */
       long oldIter = iter;
       iter = (long)Math.max(iter + 1,
