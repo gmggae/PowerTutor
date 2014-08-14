@@ -2,40 +2,32 @@ package com.henny.PowerTutor2.components;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.zip.DeflaterOutputStream;
 
 import android.content.Context;
-import android.os.Environment;
 import android.os.SystemClock;
-import android.util.Log;
 
 public class Logging extends Thread {
 	private final String TAG = "Logging";
 
-	private File writeFile;
+	private String writeFile;
 
 	protected long beginTime;
 	protected long iterationInterval;
 	private Context context;
-	FileWriter fr = null;
-	BufferedWriter outbr = null;
+	OutputStreamWriter outbr = null;
+	DeflaterOutputStream deflateStream;
 
 	public Logging(Context context) {
 		this.context = context;
 
-		File writeDirectory = new File(Environment
-				.getExternalStorageDirectory().getAbsolutePath()
-				+ "/PowerTraceWithLog");
-		if (!writeDirectory.exists()) {
-			writeDirectory.mkdir();
-		}
-
-		writeFile = new File(Environment.getExternalStorageDirectory()
-				.getAbsolutePath() + "/PowerTraceWithLog", "Log"
-				+ System.currentTimeMillis() + ".log");
+		writeFile = context.getFileStreamPath("LogTrace.log")
+				.getAbsolutePath();
 	}
 
 	/*
@@ -45,8 +37,11 @@ public class Logging extends Thread {
 		this.beginTime = beginTime;
 		this.iterationInterval = iterationInterval;
 		try {
-			fr = new FileWriter(writeFile, true);
-			outbr = new BufferedWriter(fr);
+			
+			deflateStream = new DeflaterOutputStream(new FileOutputStream(
+					writeFile));
+			
+			outbr = new OutputStreamWriter(deflateStream);
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -62,7 +57,7 @@ public class Logging extends Thread {
 			Runtime.getRuntime().exec(new String[] { "logcat", "-c" });
 
 			Process logcat = Runtime.getRuntime().exec(
-					new String[] { "logcat", "-v", "process" });
+					new String[] { "logcat", "-v", "brief" });
 			BufferedReader br = new BufferedReader(new InputStreamReader(
 					logcat.getInputStream()), 4 * 1024);
 			String line;
@@ -75,20 +70,12 @@ public class Logging extends Thread {
 
 				long curTime = SystemClock.elapsedRealtime();
 				iter = (long) (1 + (curTime - beginTime) / iterationInterval);
-				outbr.write(iter + " " + line);
-				outbr.newLine();
-
-				// Runtime.getRuntime().exec(new String[] { "logcat", "-c" });
-				/*try {
-					sleep(beginTime + iter * iterationInterval - curTime);
-				} catch (InterruptedException e) {
-					break;
-				}*/
+				outbr.write(iter + "@#" + line + "\n");				
 			}
 
 			try {
 				outbr.close();
-				fr.close();
+				deflateStream.close();
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();

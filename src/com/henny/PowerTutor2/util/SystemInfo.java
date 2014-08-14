@@ -186,7 +186,8 @@ public class SystemInfo {
   }
   
   public int getUidForPid(int pid) {
-    if(methodGetUidForPid != null) try {
+	  
+	  if(methodGetUidForPid != null) try {
       return (Integer)methodGetUidForPid.invoke(null, pid);
     } catch(InvocationTargetException e) {
       Log.w(TAG, "Call to getUidForPid failed");
@@ -198,7 +199,6 @@ public class SystemInfo {
       for(String line = rdr.readLine(); line != null; line = rdr.readLine()) {
     	  
     	Log.e(TAG, line);
-    	
     	
         if(line.startsWith("Uid:")) {
           String tokens[] = line.substring(4).split("[ \t]+"); 

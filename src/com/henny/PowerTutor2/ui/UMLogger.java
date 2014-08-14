@@ -19,10 +19,11 @@ Please send inquiries to powertutor@umich.edu
 
 package com.henny.PowerTutor2.ui;
 
-import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.zip.InflaterInputStream;
 
 import android.app.Activity;
@@ -37,18 +38,19 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.henny.PowerTutor2.R;
 import com.henny.PowerTutor2.phone.PhoneSelector;
 import com.henny.PowerTutor2.service.ICounterService;
 import com.henny.PowerTutor2.service.UMLoggerService;
+import com.henny.PowerTutor2.util.SystemInfo;
 
 /** The main view activity for PowerTutor */
 public class UMLogger extends Activity {
@@ -74,8 +76,8 @@ public class UMLogger extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		//adb shell pm grant com.henny.PowerTutor2 android.permission.READ_LOGS
-		
+		// adb shell pm grant com.henny.PowerTutor2 android.permission.READ_LOGS
+
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
 		serviceIntent = new Intent(this, UMLoggerService.class);
@@ -169,42 +171,117 @@ public class UMLogger extends Activity {
 				new Thread() {
 					public void start() {
 
-						File writeFile = new File(Environment
+						File writeDirectory = new File(Environment
 								.getExternalStorageDirectory()
-								.getAbsolutePath() + "/PowerTraceWithLog" , "PowerTrace"
-								+ System.currentTimeMillis() + ".log");
-						
-						
+								.getAbsolutePath()
+								+ "/PowerTraceWithLog");
+						if (!writeDirectory.exists()) {
+							writeDirectory.mkdir();
+						}
+
+						File powerTraceFile = new File(writeDirectory,
+								"PowerTrace" + System.currentTimeMillis()
+										+ ".log");
+
 						int count = 0;
 						try {
-							InflaterInputStream logIn = new InflaterInputStream(
+							InflaterInputStream power = new InflaterInputStream(
 									openFileInput("PowerTrace.log"));
 
-							BufferedOutputStream logOut = new BufferedOutputStream(
-									new FileOutputStream(writeFile));
+							InflaterInputStream log = new InflaterInputStream(
+									openFileInput("LogTrace.log"));
+							
+							BufferedReader powerTrace = new BufferedReader(
+									new InputStreamReader(power));
+							BufferedReader logTrace = new BufferedReader(
+									new InputStreamReader(log));
 
-							byte[] buffer = new byte[20480];
-							for (int ln = logIn.read(buffer); ln != -1; ln = logIn
-									.read(buffer)) {
-								logOut.write(buffer, 0, ln);
-								count++;
+							FileWriter logOut = new FileWriter(powerTraceFile);
+
+							String pln = null;
+							String lln = null;
+							
+							
+							long iter = 1;
+
+							
+							while (true) {
+
+								if (pln != null) {
+									logOut.write(pln+"\n");
+								}
+
+								while ((pln = powerTrace.readLine()) != null) {
+									String[] str = pln.split("@#");
+
+									if (str.length > 1) {
+										int num = Integer.parseInt(str[0]);
+
+										if (num > iter) {
+											break;
+										} else {
+											logOut.write(pln+"\n");
+										}
+									}
+								}
+
+								logOut.write("----------------------------------\n");
+								
+								if (lln != null) {
+									logOut.write(lln);
+								}
+								while ((lln = logTrace.readLine()) != null) {
+
+									String[] str = lln.split("@#");
+									
+									if (str.length > 1) {
+										int num = Integer.parseInt(str[0]);
+										
+										lln = analizeLogString(str[1], num);
+										
+										if (num > iter ) {
+											iter = num;
+											break;
+										} 
+										else {
+											if (lln != null) {
+												logOut.write(lln);
+											}
+										}
+									}
+									
+								}
+
+								logOut.write("----------------------------------\n");
+
+								if (pln == null) {
+									break;
+								}
 							}
-							logIn.close();
+
+							
+							powerTrace.close();
+							logTrace.close();
+							power.close();
+							log.close();
 							logOut.close();
 							Toast.makeText(
 									UMLogger.this,
 									"Wrote log to "
-											+ writeFile.getAbsolutePath(),
+											+ powerTraceFile.getAbsolutePath(),
 									Toast.LENGTH_SHORT).show();
 							return;
 						} catch (java.io.EOFException e) {
+							e.printStackTrace();
 							Toast.makeText(
 									UMLogger.this,
 									"Wrote log to "
-											+ writeFile.getAbsolutePath() + " "
-											+ count, Toast.LENGTH_SHORT).show();
+											+ powerTraceFile.getAbsolutePath()
+											+ " " + count, Toast.LENGTH_SHORT)
+									.show();
 							return;
 						} catch (IOException e) {
+							e.printStackTrace();
 							Toast.makeText(
 									UMLogger.this,
 									"Failed to write log to sdcard"
@@ -220,6 +297,49 @@ public class UMLogger extends Activity {
 		return super.onOptionsItemSelected(item);
 	}
 
+	
+	private String analizeLogString(String log, long iter)
+	{
+		StringBuffer strBuffer = null;
+		
+		Log.i("test", log);
+		
+		if(log.charAt(0) =='-')
+		{
+			return null;
+		}
+		strBuffer = new StringBuffer();
+		strBuffer.append(iter).append("@#");
+		strBuffer.append(log.charAt(0)).append("@#");
+		
+		
+		int i = 2;	
+		int j;
+		for(;log.charAt(i) != '(' ; i++ );
+		for(j = i - 1 ; log.charAt(j) == ' ' ; j--);
+		strBuffer.append(log.substring(2, j));
+			
+		i += 1;
+		j = i;
+		
+		for(;log.charAt(j) == ' ' ; j++ );
+	
+		String sPid = log.substring(j, i+5);
+		try{
+			int pid = Integer.parseInt(sPid);
+			int uid = SystemInfo.getInstance().getUidForPid(pid);
+			strBuffer.append("@#").append(uid).append("@#").append(log.substring(i+7)).append("\n");
+		} 
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			return null;
+		}
+		
+		
+		return strBuffer.toString();
+	}
+	
 	/** This function includes all the dialog constructor */
 	@Override
 	protected Dialog onCreateDialog(int id) {

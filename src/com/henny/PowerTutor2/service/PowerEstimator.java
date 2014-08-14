@@ -583,8 +583,8 @@ public class PowerEstimator implements Runnable {
 		for (UidInfo uidInfo : uidInfos) {
 			if( uidInfo.totalEnergy != 0)
 			{
-				content += iter + "@" + mask + "@" + uidInfo.uid + "@"
-					+ sysInfo.getUidName(uidInfo.uid, pm) + "@"
+				content += iter + "@#" + mask + "@#" + uidInfo.uid + "@#"
+					+ sysInfo.getUidName(uidInfo.uid, pm) + "@#"
 					+ uidInfo.totalEnergy + "\n";
 			}
 			
