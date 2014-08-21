@@ -205,7 +205,7 @@ public class UMLogger extends Activity {
 							while (true) {
 
 								if (pln != null) {
-									logOut.write(pln + "\n");
+									logOut.write("P@#"+pln + "\n");
 								}
 
 								while ((pln = powerTrace.readLine()) != null) {
@@ -217,15 +217,14 @@ public class UMLogger extends Activity {
 										if (num > iter) {
 											break;
 										} else {
-											logOut.write(pln + "\n");
+											logOut.write("P@#"+pln + "\n");
 										}
 									}
 								}
 
-								logOut.write("----------------------------------\n");
 
 								if (lln != null) {
-									logOut.write(lln);
+									logOut.write("L@#"+lln);
 								}
 								while ((lln = logTrace.readLine()) != null) {
 
@@ -234,7 +233,7 @@ public class UMLogger extends Activity {
 									if (str.length > 1) {
 										int num = Integer.parseInt(str[0]);
 
-										lln = analizeLogString(str[1], num);
+										lln = analizeLogString(str[1],str[2], num);
 
 										if (num > iter) {
 											iter = num;
@@ -248,14 +247,13 @@ public class UMLogger extends Activity {
 											}
 											
 											if (lln != null) {
-												logOut.write(lln);
+												logOut.write("L@#"+lln);
 											}
 										}
 									}
 
 								}
 
-								logOut.write("----------------------------------\n");
 
 								if (pln == null) {
 									break;
@@ -315,14 +313,14 @@ public class UMLogger extends Activity {
 		return super.onOptionsItemSelected(item);
 	}
 
-	private String analizeLogString(String log, long iter) {
+	private String analizeLogString(String date, String log, long iter) {
 		StringBuffer strBuffer = null;
 
 		if (log.charAt(0) == '-') {
 			return null;
 		}
 		strBuffer = new StringBuffer();
-		strBuffer.append(iter).append("@#");
+		strBuffer.append(iter).append("@#").append(date).append("@#");
 		strBuffer.append(log.charAt(0)).append("@#");
 
 		int i = 2;
@@ -332,7 +330,7 @@ public class UMLogger extends Activity {
 		for (j = i - 1; log.charAt(j) == ' '; j--)
 			;
 		strBuffer.append(log.substring(2, j + 1));
-
+		
 		i += 1;
 		j = i;
 

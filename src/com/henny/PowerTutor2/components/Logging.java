@@ -73,12 +73,12 @@ public class Logging extends Thread {
 				}
 			      			      
 			    try {
-			    	
-			    	Date d = df.parse( line.substring(0, 18));
+			    	String date = line.substring(0, 18);
+			    	Date d = df.parse( date);
 			    	d.setYear(new Date(beginTime).getYear());
 					
 					iter = (long) (1 + (d.getTime() - beginTime) / iterationInterval);
-					outbr.write(iter + "@#" + line.substring(19) + "\n");			
+					outbr.write(iter +"@#"+ date + "@#" + line.substring(19) + "\n");			
 				} catch (ParseException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
