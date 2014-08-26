@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-*/
+ */
 
 package com.henny.PowerTutor2.components;
 
@@ -27,6 +27,9 @@ import android.telephony.TelephonyManager;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 
 import com.henny.PowerTutor2.phone.PhoneConstants;
 import com.henny.PowerTutor2.service.IterationData;
@@ -36,358 +39,397 @@ import com.henny.PowerTutor2.util.Recycler;
 import com.henny.PowerTutor2.util.SystemInfo;
 
 public class Threeg extends PowerComponent {
-  public static class ThreegData extends PowerData {
-    private static Recycler<ThreegData> recycler = new Recycler<ThreegData>();
+	public static class ThreegData extends PowerData {
+		private static Recycler<ThreegData> recycler = new Recycler<ThreegData>();
 
-    public static ThreegData obtain() {
-      ThreegData result = recycler.obtain();
-      if(result != null) return result;
-      return new ThreegData();
-    }
+		public static ThreegData obtain() {
+			ThreegData result = recycler.obtain();
+			if (result != null)
+				return result;
+			return new ThreegData();
+		}
 
-    @Override
-    public void recycle() {
-      recycler.recycle(this);
-    }
+		@Override
+		public void recycle() {
+			recycler.recycle(this);
+		}
 
-    public boolean threegOn;
-    public long packets;
-    public long uplinkBytes;
-    public long downlinkBytes;
-    public int powerState;
-    public String oper;
+		public boolean threegOn;
+		public long packets;
+		public long uplinkBytes;
+		public long downlinkBytes;
+		public int powerState;
+		public String oper;
 
-    private ThreegData() {
-    }
+		private ThreegData() {
+		}
 
-    public void init() {
-      threegOn = false;
-    }
+		public void init() {
+			threegOn = false;
+		}
 
-    public void init(long packets, long uplinkBytes, long downlinkBytes,
-                     int powerState, String oper) {
-      threegOn = true;
-      this.packets = packets;
-      this.uplinkBytes = uplinkBytes;
-      this.downlinkBytes = downlinkBytes;
-      this.powerState = powerState;
-      this.oper = oper;
-    }
+		public void init(long packets, long uplinkBytes, long downlinkBytes,
+				int powerState, String oper) {
+			threegOn = true;
+			this.packets = packets;
+			this.uplinkBytes = uplinkBytes;
+			this.downlinkBytes = downlinkBytes;
+			this.powerState = powerState;
+			this.oper = oper;
+		}
 
-    public void writeLogDataInfo(OutputStreamWriter out) throws IOException {
-      StringBuilder res = new StringBuilder();
-      res.append("3G-on ").append(threegOn).append("\n");
-      if(threegOn) {
-        res.append("3G-uplinkBytes ").append(uplinkBytes)
-           .append("\n3G-downlinkBytes ").append(downlinkBytes)
-           .append("\n3G-packets ").append(packets)
-           .append("\n3G-state ").append(Threeg.POWER_STATE_NAMES[powerState])
-           .append("\n3G-oper ").append(oper)
-           .append("\n");
-      }
-      out.write(res.toString());
-    }
-  }
+		public void writeLogDataInfo(OutputStreamWriter out) throws IOException {
+			StringBuilder res = new StringBuilder();
+			res.append("3G-on ").append(threegOn).append("\n");
+			if (threegOn) {
+				res.append("3G-uplinkBytes ").append(uplinkBytes)
+						.append("\n3G-downlinkBytes ").append(downlinkBytes)
+						.append("\n3G-packets ").append(packets)
+						.append("\n3G-state ")
+						.append(Threeg.POWER_STATE_NAMES[powerState])
+						.append("\n3G-oper ").append(oper).append("\n");
+			}
+			out.write(res.toString());
+		}
+	}
 
-  public static final int POWER_STATE_IDLE = 0;
-  public static final int POWER_STATE_FACH = 1;
-  public static final int POWER_STATE_DCH = 2;
-  public static final String[] POWER_STATE_NAMES = {"IDLE", "FACH", "DCH"};
+	public static final int POWER_STATE_IDLE = 0;
+	public static final int POWER_STATE_FACH = 1;
+	public static final int POWER_STATE_DCH = 2;
+	public static final String[] POWER_STATE_NAMES = { "IDLE", "FACH", "DCH" };
 
-  private static final String TAG = "Threeg";
+	private static final String TAG = "Threeg";
 
-  private PhoneConstants phoneConstants;
-  private TelephonyManager telephonyManager;
-  private SystemInfo sysInfo;
+	private PhoneConstants phoneConstants;
+	private TelephonyManager telephonyManager;
+	private SystemInfo sysInfo;
 
-  private String oper;
-  private int dchFachDelay;
-  private int fachIdleDelay;
-  private int uplinkQueueSize;
-  private int downlinkQueueSize;
-  
-  private int[] lastUids;
-  private ThreegStateKeeper threegState;
-  private SparseArray<ThreegStateKeeper> uidStates;
+	private String oper;
+	private int dchFachDelay;
+	private int fachIdleDelay;
+	private int uplinkQueueSize;
+	private int downlinkQueueSize;
 
-  private String transPacketsFile;
-  private String readPacketsFile;
-  private String readBytesFile;
-  private String transBytesFile;
-  private File uidStatsFolder;
+	private int[] lastUids;
+	private ThreegStateKeeper threegState;
+	private SparseArray<ThreegStateKeeper> uidStates;
 
-  public Threeg(Context context, PhoneConstants phoneConstants) {
-    this.phoneConstants = phoneConstants;
-    telephonyManager = (TelephonyManager)context.getSystemService(
-                           Context.TELEPHONY_SERVICE);
+	private String transPacketsFile;
+	private String readPacketsFile;
+	private String readBytesFile;
+	private String transBytesFile;
+	private File uidStatsFolder;
 
-    String interfaceName = phoneConstants.threegInterface();
-    threegState = new ThreegStateKeeper();
-    uidStates = new SparseArray<ThreegStateKeeper>();
-    transPacketsFile = "/sys/class/net/" +
-                       interfaceName + "/statistics/tx_packets";
-    readPacketsFile = "/sys/class/net/" +
-                      interfaceName + "/statistics/rx_packets";
-    readBytesFile = "/sys/class/net/" +
-                    interfaceName + "/statistics/rx_bytes";
-    transBytesFile = "/sys/class/net/" +
-                     interfaceName + "/statistics/tx_bytes";
-    uidStatsFolder = new File("/proc/uid_stat");
-    sysInfo = SystemInfo.getInstance();
-  }
+	public Threeg(Context context, PhoneConstants phoneConstants,
+			String interfaceName) {
+		this.phoneConstants = phoneConstants;
+		telephonyManager = (TelephonyManager) context
+				.getSystemService(Context.TELEPHONY_SERVICE);
 
-  @Override
-  public IterationData calculateIteration(long iteration) {
-    IterationData result = IterationData.obtain();
+		threegState = new ThreegStateKeeper();
+		uidStates = new SparseArray<ThreegStateKeeper>();
 
-    int netType = telephonyManager.getNetworkType();
+		changePacketsFolder(interfaceName);
+		
+		uidStatsFolder = new File("/proc/uid_stat");
+		sysInfo = SystemInfo.getInstance();
+	}
 
-    if((netType != TelephonyManager.NETWORK_TYPE_UMTS &&
-        netType != 8/* TelephonyManager.NETWORK_TYPE_HSDPA */)) {
-      // TODO: Actually get models for the different network types.
-      netType = TelephonyManager.NETWORK_TYPE_UMTS;
-    }
+	public void changePacketsFolder(String interfaceName) {
+		transPacketsFile = "/sys/devices/virtual/net/" + interfaceName
+				+ "/statistics/tx_packets";
+		readPacketsFile = "/sys/devices/virtual/net/" + interfaceName
+				+ "/statistics/rx_packets";
+		readBytesFile = "/sys/devices/virtual/net/" + interfaceName
+				+ "/statistics/rx_bytes";
+		transBytesFile = "/sys/devices/virtual/net/" + interfaceName
+				+ "/statistics/tx_bytes";
+	}
 
-    if(telephonyManager.getDataState() != TelephonyManager.DATA_CONNECTED ||
-       (netType != TelephonyManager.NETWORK_TYPE_UMTS &&
-        netType != 8/* TelephonyManager.NETWORK_TYPE_HSDPA */)) {
-      /* We need to allow the real iterface state keeper to reset it's state
-       * so that the next update it knows it's coming back from an off state.
-       * We also need to clear all the uid information.
-       */
-      oper = null;
-      threegState.interfaceOff();
-      uidStates.clear();
+	@Override
+	public IterationData calculateIteration(long iteration) {
+		IterationData result = IterationData.obtain();
 
-      ThreegData data = ThreegData.obtain();
-      data.init();
-      result.setPowerData(data);
-      return result;
-    }
+		int netType = telephonyManager.getNetworkType();
 
-    if(oper == null) {
-      oper = telephonyManager.getNetworkOperatorName();
-      dchFachDelay = phoneConstants.threegDchFachDelay(oper);
-      fachIdleDelay = phoneConstants.threegFachIdleDelay(oper);
-      uplinkQueueSize = phoneConstants.threegUplinkQueue(oper);
-      downlinkQueueSize = phoneConstants.threegDownlinkQueue(oper);
-    }
+		if ((netType != TelephonyManager.NETWORK_TYPE_UMTS && netType != 8/*
+																		 * TelephonyManager
+																		 * .
+																		 * NETWORK_TYPE_HSDPA
+																		 */)) {
+			// TODO: Actually get models for the different network types.
+			netType = TelephonyManager.NETWORK_TYPE_UMTS;
+		}
 
-    long transmitPackets = readLongFromFile(transPacketsFile);
-    long receivePackets = readLongFromFile(readPacketsFile);
-    long transmitBytes = readLongFromFile(transBytesFile);
-    long receiveBytes = readLongFromFile(readBytesFile);
-    if(transmitBytes == -1 || receiveBytes == -1) {
-      /* Couldn't read interface data files. */
-      Log.w(TAG, "Failed to read packet and byte counts from wifi interface");
-      return result;
-    }
+		if (telephonyManager.getDataState() != TelephonyManager.DATA_CONNECTED
+				|| (netType != TelephonyManager.NETWORK_TYPE_UMTS && netType != 8/*
+																				 * TelephonyManager
+																				 * .
+																				 * NETWORK_TYPE_HSDPA
+																				 */)) {
+			/*
+			 * We need to allow the real iterface state keeper to reset it's
+			 * state so that the next update it knows it's coming back from an
+			 * off state. We also need to clear all the uid information.
+			 */
+			oper = null;
+			threegState.interfaceOff();
+			uidStates.clear();
 
-    if(threegState.isInitialized()) {
-      threegState.updateState(transmitPackets, receivePackets,
-                              transmitBytes, receiveBytes,
-                              dchFachDelay, fachIdleDelay,
-                              uplinkQueueSize, downlinkQueueSize);
-      ThreegData data = ThreegData.obtain();
-      data.init(threegState.getPackets(), threegState.getUplinkBytes(),
-                threegState.getDownlinkBytes(), threegState.getPowerState(),
-                oper);
-      result.setPowerData(data);
-    } else {
-      threegState.updateState(transmitPackets, receivePackets,
-                              transmitBytes, receiveBytes,
-                              dchFachDelay, fachIdleDelay,
-                              uplinkQueueSize, downlinkQueueSize);
-    }
+			ThreegData data = ThreegData.obtain();
+			data.init();
+			result.setPowerData(data);
+			return result;
+		}
 
-    lastUids = sysInfo.getUids(lastUids);
-    if(lastUids != null) for(int uid : lastUids) {
-      if(uid == -1) {
-        continue;
-      }
-      try {
-        ThreegStateKeeper uidState = uidStates.get(uid);
-        if(uidState == null) {
-          uidState = new ThreegStateKeeper();
-          uidStates.put(uid, uidState);
-        }
+		if (oper == null) {
+			oper = telephonyManager.getNetworkOperatorName();
+			dchFachDelay = phoneConstants.threegDchFachDelay(oper);
+			fachIdleDelay = phoneConstants.threegFachIdleDelay(oper);
+			uplinkQueueSize = phoneConstants.threegUplinkQueue(oper);
+			downlinkQueueSize = phoneConstants.threegDownlinkQueue(oper);
+		}
 
-        if(!uidState.isStale()) {
-          /* We use a huerstic here so that we don't poll for uids that haven't
-           * had much activity recently.
-           */
-          continue;
-        }
-          
-        /* These read operations are the expensive part of polling. */
-        receiveBytes = readLongFromFile("/proc/uid_stat/" + uid + "/tcp_rcv");
-        transmitBytes = readLongFromFile("/proc/uid_stat/" + uid + "/tcp_snd");
+		long transmitPackets = readLongFromFile(transPacketsFile);
+		long receivePackets = readLongFromFile(readPacketsFile);
+		long transmitBytes = readLongFromFile(transBytesFile);
+		long receiveBytes = readLongFromFile(readBytesFile);
+		if (transmitBytes == -1 || receiveBytes == -1) {
+			/* Couldn't read interface data files. */
+			Enumeration<NetworkInterface> networkInterfaces;
+			try {
+				networkInterfaces = NetworkInterface.getNetworkInterfaces();
+				
+				while (networkInterfaces.hasMoreElements())
+				{
+				    NetworkInterface networkInterface = (NetworkInterface) networkInterfaces.nextElement();
+				   // networkInterface.getHardwareAddress();
+				    String netName = networkInterface.getDisplayName();
+				    if(!netName.contains("usb") && !netName.contains(Wifi.interfaceName))
+				    	changePacketsFolder(netName);
+				    	
+				   
+				}
+				
+			} catch (SocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Log.w(TAG,
+					"Failed to read packet and byte counts from wifi interface");
+			return result;
+		}
 
-        if(receiveBytes == -1 || transmitBytes == -1) {
-          Log.w(TAG, "Failed to read uid read/write byte counts");
-        } else if(uidState.isInitialized()) {
-          uidState.updateState(-1, -1, transmitBytes, receiveBytes,
-                               dchFachDelay, fachIdleDelay,
-                               uplinkQueueSize, downlinkQueueSize);
+		if (threegState.isInitialized()) {
+			threegState.updateState(transmitPackets, receivePackets,
+					transmitBytes, receiveBytes, dchFachDelay, fachIdleDelay,
+					uplinkQueueSize, downlinkQueueSize);
+			ThreegData data = ThreegData.obtain();
+			data.init(threegState.getPackets(), threegState.getUplinkBytes(),
+					threegState.getDownlinkBytes(),
+					threegState.getPowerState(), oper);
+			result.setPowerData(data);
+		} else {
+			threegState.updateState(transmitPackets, receivePackets,
+					transmitBytes, receiveBytes, dchFachDelay, fachIdleDelay,
+					uplinkQueueSize, downlinkQueueSize);
+		}
 
-          if(uidState.getUplinkBytes() + uidState.getDownlinkBytes() != 0 ||
-             uidState.getPowerState() != POWER_STATE_IDLE) {
-            ThreegData uidData = ThreegData.obtain();
-            uidData.init(uidState.getPackets(),
-                         uidState.getUplinkBytes(), uidState.getDownlinkBytes(),
-                         uidState.getPowerState(), oper);
-            result.addUidPowerData(uid, uidData);
-          }
-        } else {
-          uidState.updateState(-1, -1, transmitBytes, receiveBytes,
-                               dchFachDelay, fachIdleDelay,
-                               uplinkQueueSize, downlinkQueueSize);
-        }
-      } catch(NumberFormatException e) {
-        Log.w(TAG, "Non-uid files in /proc/uid_stat");
-      }
-    }
+		lastUids = sysInfo.getUids(lastUids);
+		if (lastUids != null)
+			for (int uid : lastUids) {
+				if (uid == -1) {
+					continue;
+				}
+				try {
+					ThreegStateKeeper uidState = uidStates.get(uid);
+					if (uidState == null) {
+						uidState = new ThreegStateKeeper();
+						uidStates.put(uid, uidState);
+					}
 
-    return result;
-  }
+					if (!uidState.isStale()) {
+						/*
+						 * We use a huerstic here so that we don't poll for uids
+						 * that haven't had much activity recently.
+						 */
+						continue;
+					}
 
-  private static class ThreegStateKeeper {
-    private long lastTransmitPackets;
-    private long lastReceivePackets;
-    private long lastTransmitBytes;
-    private long lastReceiveBytes;
-    private long lastTime;
+					/* These read operations are the expensive part of polling. */
+					receiveBytes = readLongFromFile("/proc/uid_stat/" + uid
+							+ "/tcp_rcv");
+					transmitBytes = readLongFromFile("/proc/uid_stat/" + uid
+							+ "/tcp_snd");
 
-    private long deltaPackets;
-    private long deltaUplinkBytes;
-    private long deltaDownlinkBytes;
+					if (receiveBytes == -1 || transmitBytes == -1) {
+						Log.w(TAG, "Failed to read uid read/write byte counts");
+					} else if (uidState.isInitialized()) {
+						uidState.updateState(-1, -1, transmitBytes,
+								receiveBytes, dchFachDelay, fachIdleDelay,
+								uplinkQueueSize, downlinkQueueSize);
 
-    private int powerState;
-    private int stateTime;
+						if (uidState.getUplinkBytes()
+								+ uidState.getDownlinkBytes() != 0
+								|| uidState.getPowerState() != POWER_STATE_IDLE) {
+							ThreegData uidData = ThreegData.obtain();
+							uidData.init(uidState.getPackets(),
+									uidState.getUplinkBytes(),
+									uidState.getDownlinkBytes(),
+									uidState.getPowerState(), oper);
+							result.addUidPowerData(uid, uidData);
+						}
+					} else {
+						uidState.updateState(-1, -1, transmitBytes,
+								receiveBytes, dchFachDelay, fachIdleDelay,
+								uplinkQueueSize, downlinkQueueSize);
+					}
+				} catch (NumberFormatException e) {
+					Log.w(TAG, "Non-uid files in /proc/uid_stat");
+				}
+			}
 
-    private long inactiveTime;
+		return result;
+	}
 
-    public ThreegStateKeeper() {
-      lastTransmitBytes = lastReceiveBytes = lastTime = -1;
-      deltaUplinkBytes = deltaDownlinkBytes = -1;
-      powerState = POWER_STATE_IDLE;
-      stateTime = 0;
-      inactiveTime = 0;
-    }
+	private static class ThreegStateKeeper {
+		private long lastTransmitPackets;
+		private long lastReceivePackets;
+		private long lastTransmitBytes;
+		private long lastReceiveBytes;
+		private long lastTime;
 
-    public void interfaceOff() {
-      lastTime = System.currentTimeMillis();
-      powerState = POWER_STATE_IDLE;
-    }
+		private long deltaPackets;
+		private long deltaUplinkBytes;
+		private long deltaDownlinkBytes;
 
-    public boolean isInitialized() {
-      return lastTime != -1;
-    }
+		private int powerState;
+		private int stateTime;
 
-    public void updateState(long transmitPackets, long receivePackets,
-                            long transmitBytes, long receiveBytes,
-                            int dchFachDelay, int fachIdleDelay,
-                            int uplinkQueueSize, int downlinkQueueSize) {
-      long curTime = System.currentTimeMillis();
-      if(lastTime != -1 && curTime > lastTime) {
-        double deltaTime = curTime - lastTime;
-        deltaPackets = transmitPackets + receivePackets -
-                       lastTransmitPackets - lastReceivePackets;
-        deltaUplinkBytes = transmitBytes - lastTransmitBytes;
-        deltaDownlinkBytes = receiveBytes - lastReceiveBytes;
-        boolean inactive = deltaUplinkBytes == 0 && deltaDownlinkBytes == 0;
-        inactiveTime = inactive ? inactiveTime + curTime - lastTime : 0;
+		private long inactiveTime;
 
-        // TODO: make this always work.
-        int timeMult = 1;
-        if(1000 % PowerEstimator.ITERATION_INTERVAL != 0) {
-          Log.w(TAG,
-            "Cannot handle iteration intervals that are a factor of 1 second");
-        } else {
-          timeMult = 1000 / PowerEstimator.ITERATION_INTERVAL;
-        }
+		public ThreegStateKeeper() {
+			lastTransmitBytes = lastReceiveBytes = lastTime = -1;
+			deltaUplinkBytes = deltaDownlinkBytes = -1;
+			powerState = POWER_STATE_IDLE;
+			stateTime = 0;
+			inactiveTime = 0;
+		}
 
-        switch(powerState) {
-          case POWER_STATE_IDLE:
-            if(!inactive) {
-              powerState = POWER_STATE_FACH;
-            }
-            break;
-          case POWER_STATE_FACH:
-            if(inactive) {
-              stateTime++;
-              if(stateTime >= fachIdleDelay * timeMult) {
-                stateTime = 0;
-                powerState = POWER_STATE_IDLE;
-              }
-            } else {
-              stateTime = 0;
-              if(deltaUplinkBytes > 0 ||
-                 deltaDownlinkBytes > 0) {
-                powerState = POWER_STATE_DCH;
-              }
-            }
-            break;
-          default: // case POWER_STATE_DCH:
-            if(inactive) {
-              stateTime++;
-              if(stateTime >= dchFachDelay * timeMult) {
-                stateTime = 0;
-                powerState = POWER_STATE_FACH;
-              }
-            } else {
-              stateTime = 0;
-            }
-        }
-      }
-      lastTime = curTime;
-      lastTransmitPackets = transmitPackets;
-      lastReceivePackets = receivePackets;
-      lastTransmitBytes = transmitBytes;
-      lastReceiveBytes = receiveBytes;
-    }
+		public void interfaceOff() {
+			lastTime = System.currentTimeMillis();
+			powerState = POWER_STATE_IDLE;
+		}
 
-    public int getPowerState() {
-      return powerState;
-    }
+		public boolean isInitialized() {
+			return lastTime != -1;
+		}
 
-    public long getPackets() {
-      return deltaPackets;
-    }
+		public void updateState(long transmitPackets, long receivePackets,
+				long transmitBytes, long receiveBytes, int dchFachDelay,
+				int fachIdleDelay, int uplinkQueueSize, int downlinkQueueSize) {
+			long curTime = System.currentTimeMillis();
+			if (lastTime != -1 && curTime > lastTime) {
+				double deltaTime = curTime - lastTime;
+				deltaPackets = transmitPackets + receivePackets
+						- lastTransmitPackets - lastReceivePackets;
+				deltaUplinkBytes = transmitBytes - lastTransmitBytes;
+				deltaDownlinkBytes = receiveBytes - lastReceiveBytes;
+				boolean inactive = deltaUplinkBytes == 0
+						&& deltaDownlinkBytes == 0;
+				inactiveTime = inactive ? inactiveTime + curTime - lastTime : 0;
 
-    public long getUplinkBytes() {
-      return deltaUplinkBytes;
-    }
+				// TODO: make this always work.
+				int timeMult = 1;
+				if (1000 % PowerEstimator.ITERATION_INTERVAL != 0) {
+					Log.w(TAG,
+							"Cannot handle iteration intervals that are a factor of 1 second");
+				} else {
+					timeMult = 1000 / PowerEstimator.ITERATION_INTERVAL;
+				}
 
-    public long getDownlinkBytes() {
-      return deltaDownlinkBytes;
-    }
+				switch (powerState) {
+				case POWER_STATE_IDLE:
+					if (!inactive) {
+						powerState = POWER_STATE_FACH;
+					}
+					break;
+				case POWER_STATE_FACH:
+					if (inactive) {
+						stateTime++;
+						if (stateTime >= fachIdleDelay * timeMult) {
+							stateTime = 0;
+							powerState = POWER_STATE_IDLE;
+						}
+					} else {
+						stateTime = 0;
+						if (deltaUplinkBytes > 0 || deltaDownlinkBytes > 0) {
+							powerState = POWER_STATE_DCH;
+						}
+					}
+					break;
+				default: // case POWER_STATE_DCH:
+					if (inactive) {
+						stateTime++;
+						if (stateTime >= dchFachDelay * timeMult) {
+							stateTime = 0;
+							powerState = POWER_STATE_FACH;
+						}
+					} else {
+						stateTime = 0;
+					}
+				}
+			}
+			lastTime = curTime;
+			lastTransmitPackets = transmitPackets;
+			lastReceivePackets = receivePackets;
+			lastTransmitBytes = transmitBytes;
+			lastReceiveBytes = receiveBytes;
+		}
 
-    /* The idea here is that we don't want to have to read uid information
-     * every single iteration for each uid as it just takes too long.  So here
-     * we are designing a hueristic that helps us avoid polling for too many
-     * uids.
-     */
-    public boolean isStale() {
-      if(powerState != POWER_STATE_IDLE) return true;
-      long curTime = System.currentTimeMillis();
-      return curTime - lastTime > (long)Math.min(10000, inactiveTime);
-    }
-  }
+		public int getPowerState() {
+			return powerState;
+		}
 
-  private final static byte[] buf = new byte[16];
+		public long getPackets() {
+			return deltaPackets;
+		}
 
-  private long readLongFromFile(String filePath) {
-    return sysInfo.readLongFromFile(filePath);
-  }
+		public long getUplinkBytes() {
+			return deltaUplinkBytes;
+		}
 
-  @Override
-  public boolean hasUidInformation() {
-    return uidStatsFolder.exists();
-  }
+		public long getDownlinkBytes() {
+			return deltaDownlinkBytes;
+		}
 
-  @Override
-  public String getComponentName() {
-    return "3G";
-  }
+		/*
+		 * The idea here is that we don't want to have to read uid information
+		 * every single iteration for each uid as it just takes too long. So
+		 * here we are designing a hueristic that helps us avoid polling for too
+		 * many uids.
+		 */
+		public boolean isStale() {
+			if (powerState != POWER_STATE_IDLE)
+				return true;
+			long curTime = System.currentTimeMillis();
+			return curTime - lastTime > (long) Math.min(10000, inactiveTime);
+		}
+	}
+
+	private final static byte[] buf = new byte[16];
+
+	private long readLongFromFile(String filePath) {
+		return sysInfo.readLongFromFile(filePath);
+	}
+
+	@Override
+	public boolean hasUidInformation() {
+		return uidStatsFolder.exists();
+	}
+
+	@Override
+	public String getComponentName() {
+		return "3G";
+	}
 }

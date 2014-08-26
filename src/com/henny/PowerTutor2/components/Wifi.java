@@ -58,6 +58,7 @@ public class Wifi extends PowerComponent {
 		public double uplinkRate;
 		public double linkSpeed;
 		public int powerState;
+		
 
 		private WifiData() {
 		}
@@ -116,9 +117,10 @@ public class Wifi extends PowerComponent {
 	private String transBytesFile;
 	private String readBytesFile;
 	private File uidStatsFolder;
-	private String interfaceName;
+	public static String interfaceName;
+	private int count = 0;
 
-	public Wifi(Context context, PhoneConstants phoneConstants) {
+	public Wifi(Context context, PhoneConstants phoneConstants, String interfaceName) {
 		this.phoneConstants = phoneConstants;
 		wifiManager = (WifiManager) context
 				.getSystemService(Context.WIFI_SERVICE);
@@ -128,7 +130,7 @@ public class Wifi extends PowerComponent {
 		 * Try to grab the interface name. If we can't find it will take a wild
 		 * stab in the dark.
 		 */
-		interfaceName = "sit0";
+		Wifi.interfaceName = interfaceName;
 
 		lastLinkSpeed = -1;
 		wifiState = new WifiStateKeeper(phoneConstants.wifiHighLowTransition(),
@@ -178,8 +180,18 @@ public class Wifi extends PowerComponent {
 
 		if (transmitPackets == -1 || receivePackets == -1
 				|| transmitBytes == -1 || receiveBytes == -1) {
-			changeWifiDirectory("/sys/class/net/");
-
+			if(count == 0 || count == 2)
+			{
+				interfaceName = "wlan0";
+				count++;
+			}
+			else if(count == 1)
+			{
+				changeWifiDirectory("/sys/class/net/");
+				interfaceName = "eth0";
+				count++;
+			}
+			
 			/* Couldn't read interface data files. */
 			Log.w(TAG,
 					"Failed to read packet and byte counts from wifi interface");

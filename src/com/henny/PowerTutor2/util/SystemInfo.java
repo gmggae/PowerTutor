@@ -34,7 +34,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.os.Process;
-import android.os.SystemClock;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -177,6 +176,7 @@ public class SystemInfo {
     try {
       Class classSystemProperties = Class.forName("android.os.SystemProperties");
       methodGetProperty = classSystemProperties.getMethod("get", String.class);
+      
     } catch(NoSuchMethodException e) {
       Log.w(TAG, "Could not access SystemProperties.get");
     } catch(ClassNotFoundException e) {

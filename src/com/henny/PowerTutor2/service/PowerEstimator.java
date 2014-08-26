@@ -31,12 +31,10 @@ import java.util.zip.DeflaterOutputStream;
 
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.SparseArray;
 
-import com.henny.PowerTutor2.components.CPU;
 import com.henny.PowerTutor2.components.Logging;
 import com.henny.PowerTutor2.components.OLED;
 import com.henny.PowerTutor2.components.PowerComponent;
@@ -56,6 +54,7 @@ import com.henny.PowerTutor2.util.SystemInfo;
  */
 public class PowerEstimator implements Runnable {
 	private static final String TAG = "PowerEstimator";
+	public static long begin;
 
 	/*
 	 * A dictionary used to assist in compression of the log files. Strings that
@@ -149,7 +148,7 @@ public class PowerEstimator implements Runnable {
 
 		int components = powerComponents.size();
 		long beginTime = System.currentTimeMillis();
-
+		begin = beginTime;
 		logging = new Logging(context);
 		logging.init(beginTime, ITERATION_INTERVAL);
 		logging.start();

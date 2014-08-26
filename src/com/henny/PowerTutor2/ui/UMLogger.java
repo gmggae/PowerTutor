@@ -49,6 +49,7 @@ import android.widget.Toast;
 import com.henny.PowerTutor2.R;
 import com.henny.PowerTutor2.phone.PhoneSelector;
 import com.henny.PowerTutor2.service.ICounterService;
+import com.henny.PowerTutor2.service.PowerEstimator;
 import com.henny.PowerTutor2.service.UMLoggerService;
 import com.henny.PowerTutor2.util.SystemInfo;
 
@@ -201,60 +202,72 @@ public class UMLogger extends Activity {
 							String lln = null;
 
 							long iter = 1;
-
+							long powerNum = 1;
+							long logNum = 1;
+							
+							logOut.write(PowerEstimator.begin+"\n");
+							
 							while (true) {
 
-								if (pln != null) {
-									logOut.write("P@#"+pln + "\n");
-								}
+								if ( powerNum == iter) {
+									if( pln != null)
+										logOut.write("P@#"+pln + "\n");
+									while ((pln = powerTrace.readLine()) != null) {
+										String[] str = pln.split("@#");
 
-								while ((pln = powerTrace.readLine()) != null) {
-									String[] str = pln.split("@#");
+										if (str.length > 1) {
+											int num = Integer.parseInt(str[0]);
 
-									if (str.length > 1) {
-										int num = Integer.parseInt(str[0]);
-
-										if (num > iter) {
-											break;
-										} else {
-											logOut.write("P@#"+pln + "\n");
-										}
-									}
-								}
-
-
-								if (lln != null) {
-									logOut.write("L@#"+lln);
-								}
-								while ((lln = logTrace.readLine()) != null) {
-
-									String[] str = lln.split("@#");
-
-									if (str.length > 1) {
-										int num = Integer.parseInt(str[0]);
-
-										lln = analizeLogString(str[1],str[2], num);
-
-										if (num > iter) {
-											iter = num;
-											break;
-										}
-										else {
-											
-											if(iter != num)
-											{
-												continue;
-											}
-											
-											if (lln != null) {
-												logOut.write("L@#"+lln);
+											if (num > iter) {
+												powerNum = num;
+												break;
+											} else {
+												logOut.write("P@#"+pln + "\n");
 											}
 										}
 									}
 
 								}
+								else{
+									logOut.write("P@#"+iter+"@#CPU@#1000@#System@#0\n");
+								}
 
 
+								if (logNum == iter) {
+									if(lln != null )
+										logOut.write("L@#"+lln);	
+									while ((lln = logTrace.readLine()) != null) {
+
+										String[] str = lln.split("@#");
+
+										if (str.length > 1) {
+											int num = Integer.parseInt(str[0]);
+
+											lln = analizeLogString(str[1],str[2], num);
+
+											if (num > iter) {
+												logNum = num;
+												break;
+											}
+											else {
+												
+												if(iter != num)
+												{
+													continue;
+												}
+												
+												if (lln != null) {
+													logOut.write("L@#"+lln);
+												}
+											}
+										}
+
+									}
+
+								}
+								
+								iter++;
+								
 								if (pln == null) {
 									break;
 								}

@@ -19,33 +19,35 @@ Please send inquiries to powertutor@umich.edu
 
 package com.henny.PowerTutor2.phone;
 
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.List;
-
-import com.henny.PowerTutor2.components.Audio;
-import com.henny.PowerTutor2.components.CPU;
-import com.henny.PowerTutor2.components.GPS;
-import com.henny.PowerTutor2.components.LCD;
-import com.henny.PowerTutor2.components.Logging;
-import com.henny.PowerTutor2.components.OLED;
-import com.henny.PowerTutor2.components.PowerComponent;
-import com.henny.PowerTutor2.components.Sensors;
-import com.henny.PowerTutor2.components.Threeg;
-import com.henny.PowerTutor2.components.Wifi;
-import com.henny.PowerTutor2.components.Audio.AudioData;
-import com.henny.PowerTutor2.components.CPU.CpuData;
-import com.henny.PowerTutor2.components.GPS.GpsData;
-import com.henny.PowerTutor2.components.LCD.LcdData;
-import com.henny.PowerTutor2.components.OLED.OledData;
-import com.henny.PowerTutor2.components.Sensors.SensorData;
-import com.henny.PowerTutor2.components.Threeg.ThreegData;
-import com.henny.PowerTutor2.components.Wifi.WifiData;
-import com.henny.PowerTutor2.service.PowerData;
-import com.henny.PowerTutor2.util.NotificationService;
-import com.henny.PowerTutor2.util.SystemInfo;
 
 import android.content.Context;
 import android.os.Build;
 import android.util.Log;
+
+import com.henny.PowerTutor2.components.Audio;
+import com.henny.PowerTutor2.components.Audio.AudioData;
+import com.henny.PowerTutor2.components.CPU;
+import com.henny.PowerTutor2.components.CPU.CpuData;
+import com.henny.PowerTutor2.components.GPS;
+import com.henny.PowerTutor2.components.GPS.GpsData;
+import com.henny.PowerTutor2.components.LCD;
+import com.henny.PowerTutor2.components.LCD.LcdData;
+import com.henny.PowerTutor2.components.OLED;
+import com.henny.PowerTutor2.components.OLED.OledData;
+import com.henny.PowerTutor2.components.PowerComponent;
+import com.henny.PowerTutor2.components.Sensors;
+import com.henny.PowerTutor2.components.Sensors.SensorData;
+import com.henny.PowerTutor2.components.Threeg;
+import com.henny.PowerTutor2.components.Threeg.ThreegData;
+import com.henny.PowerTutor2.components.Wifi;
+import com.henny.PowerTutor2.components.Wifi.WifiData;
+import com.henny.PowerTutor2.service.PowerData;
+import com.henny.PowerTutor2.util.NotificationService;
+import com.henny.PowerTutor2.util.SystemInfo;
 
 public class PhoneSelector {
 	private static final String TAG = "PhoneSelector";
@@ -130,6 +132,25 @@ public class PhoneSelector {
 		final PhoneConstants constants = getConstants(context);
 		final PhonePowerCalculator calculator = getCalculator(context);
 
+		Enumeration<NetworkInterface> networkInterfaces;
+		try {
+
+			Log.i("DeviceInfo", Build.DEVICE + " ");
+			networkInterfaces = NetworkInterface.getNetworkInterfaces();
+
+			while (networkInterfaces.hasMoreElements()) {
+				NetworkInterface networkInterface = (NetworkInterface) networkInterfaces
+						.nextElement();
+				// networkInterface.getHardwareAddress();
+				Log.i("DeviceInfo", networkInterface.getDisplayName() + " ");
+
+			}
+
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		// TODO: What about bluetooth?
 		// TODO: LED light on the Nexus
 
@@ -159,14 +180,16 @@ public class PhoneSelector {
 		});
 
 		/* Add Wifi component. */
-		String wifiInterface = "sit0";
-		//Log.i("wifi", wifiInterface + "1");
-		//wifiInterface = SystemInfo.getInstance().getProperty("wifi.interface");
-		
-		//Log.i("wifi", wifiInterface + "2");
+		String wifiInterface;
+		// Log.i("wifi", wifiInterface + "1");
+		wifiInterface = SystemInfo.getInstance().getProperty("wifi.interface");
+
+		if (wifiInterface == null || wifiInterface.length() == 0) {
+			wifiInterface = "eth0";
+		}
 
 		if (wifiInterface != null && wifiInterface.length() != 0) {
-			components.add(new Wifi(context, constants));
+			components.add(new Wifi(context, constants, wifiInterface));
 			functions.add(new PowerFunction() {
 				public double calculate(PowerData data) {
 					return calculator.getWifiPower((WifiData) data);
@@ -176,7 +199,7 @@ public class PhoneSelector {
 
 		/* Add 3G component. */
 		if (constants.threegInterface().length() != 0) {
-			components.add(new Threeg(context, constants));
+			components.add(new Threeg(context, constants, "rmnet0"));
 			functions.add(new PowerFunction() {
 				public double calculate(PowerData data) {
 					return calculator.getThreeGPower((ThreegData) data);
@@ -199,8 +222,6 @@ public class PhoneSelector {
 				return calculator.getAudioPower((AudioData) data);
 			}
 		});
-		
-		
 
 		/* Add Sensors component if avaialble. */
 		if (NotificationService.available()) {

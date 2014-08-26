@@ -97,7 +97,7 @@ public class SapphireConstants extends DreamConstants {
   }
 
   public String threegInterface() {
-    return "sit0";
+    return "rmnet0";
   }
 
   public double threegIdlePower(String oper) {

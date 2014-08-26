@@ -133,7 +133,7 @@ public class DreamConstants implements PhoneConstants {
   }
 
   public String threegInterface() {
-    return "sit0";
+    return "rmnet0";
   }
 
   public double threegIdlePower(String oper) {
