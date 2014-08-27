@@ -132,24 +132,7 @@ public class PhoneSelector {
 		final PhoneConstants constants = getConstants(context);
 		final PhonePowerCalculator calculator = getCalculator(context);
 
-		Enumeration<NetworkInterface> networkInterfaces;
-		try {
-
-			Log.i("DeviceInfo", Build.DEVICE + " ");
-			networkInterfaces = NetworkInterface.getNetworkInterfaces();
-
-			while (networkInterfaces.hasMoreElements()) {
-				NetworkInterface networkInterface = (NetworkInterface) networkInterfaces
-						.nextElement();
-				// networkInterface.getHardwareAddress();
-				Log.i("DeviceInfo", networkInterface.getDisplayName() + " ");
-
-			}
-
-		} catch (SocketException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		
 
 		// TODO: What about bluetooth?
 		// TODO: LED light on the Nexus
@@ -232,5 +215,7 @@ public class PhoneSelector {
 				}
 			});
 		}
+		
+		
 	}
 }

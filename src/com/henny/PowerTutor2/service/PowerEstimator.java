@@ -23,6 +23,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -31,6 +34,7 @@ import java.util.zip.DeflaterOutputStream;
 
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.SparseArray;
@@ -168,6 +172,25 @@ public class PowerEstimator implements Runnable {
 				oledId = i;
 				break;
 			}
+		}
+		
+		Enumeration<NetworkInterface> networkInterfaces;
+		try {
+
+			Log.i("DeviceInfo", Build.DEVICE + " ");
+			networkInterfaces = NetworkInterface.getNetworkInterfaces();
+
+			while (networkInterfaces.hasMoreElements()) {
+				NetworkInterface networkInterface = (NetworkInterface) networkInterfaces
+						.nextElement();
+				// networkInterface.getHardwareAddress();
+				Log.i("DeviceInfo", networkInterface.getDisplayName() + " ");
+
+			}
+
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 		// double lastCurrent = -1;
